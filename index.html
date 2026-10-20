@@ -233,7 +233,7 @@ button { cursor: pointer; }
 }
 .field textarea { resize: vertical; line-height: 1.55; }
 .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--leaf); box-shadow: 0 0 0 3px var(--leaf-soft); }
-.row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 .form-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; align-items: center; }
 .form-actions .msg { margin-right: auto; font-size: 14px; color: var(--muted); }
 .form-actions .msg.err { color: var(--danger); }
@@ -289,6 +289,7 @@ footer a:hover { border-bottom-color: var(--leaf); }
   <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-2.5h6L17 8h3a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
   <symbol id="i-paste" viewBox="0 0 24 24"><rect x="5" y="4.5" width="14" height="16.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 4.5V3h6v1.5M8.5 10h7M8.5 13.5h7M8.5 17h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l1-4.5L16 4.5a2.1 2.1 0 013 3L8 18.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 6.5l3 3" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3c.8 3.4 5.5 5.6 5.5 10.5a5.5 5.5 0 01-11 0c0-2.4 1.1-4 2.4-5.2.2 1.7 1 2.8 2.1 3.2-.1-3 .2-5.8 1-8.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
 </svg>
 
@@ -427,6 +428,184 @@ function splitIngredient(line, factor) {
   return { qty, rest: line.trim().slice(p[1].length) };
 }
 
+/* ---------- calories: estimated from the ingredient list ----------
+   Each entry: [name pattern, kcal per 100g, grams for one whole item, grams per ml].
+   Order matters: more specific names come before the general ones they contain. */
+const FOODS = [
+  // next to nothing
+  ["salt|black pepper|white pepper|ground pepper|pepper to taste|peppercorn|pepper flakes|chilli flakes|chili flakes|paprika|cumin|cinnamon|nutmeg|oregano|basil|thyme|rosemary|parsley|coriander|mixed herbs|mixed spice|bay lea|vanilla|turmeric|garam masala|curry powder|ground ginger|garlic powder|onion powder|cayenne|cloves? \\(spice\\)|allspice|dill|mint|chives|sage|baking powder|bicarbonate|baking soda|yeast|gelatine|water|ice|zest|zested", 0],
+  ["lemon juice|lime juice|juice of|juiced|squeeze of", 22, 30],
+  ["stock cube|bouillon|stock pot|oxo", 250, 10],
+  ["stock|broth", 5],
+  ["coconut milk", 180, 0, 1],
+  ["condensed milk", 320, 0, 1.3],
+  ["buttermilk", 40],
+  ["butternut", 45, 1000],
+  ["butter bean|cannellini|kidney bean|black bean|borlotti|baked bean|chickpea", 115, 0, .7],
+  ["peanut butter", 590],
+  ["unsalted butter|salted butter|butter|margarine", 740, 113, .95],
+  ["double cream|heavy cream|clotted cream", 450],
+  ["whipping cream", 340],
+  ["single cream", 190],
+  ["soured cream|sour cream", 200],
+  ["cr[eè]me fra[iî]che", 300],
+  ["cream cheese|soft cheese|mascarpone", 300],
+  ["cream", 340],
+  ["greek yo", 100],
+  ["yogh?urt", 70],
+  ["skimmed milk", 35, 0, 1.03],
+  ["milk chocolate|dark chocolate|white chocolate|chocolate chip|chocolate", 540, 0, .7],
+  ["milk", 50, 0, 1.03],
+  ["parmesan|pecorino", 400, 0, .4],
+  ["mozzarella", 280, 125],
+  ["feta", 265],
+  ["halloumi", 320],
+  ["goat'?s cheese", 330],
+  ["cheddar|cheese", 410, 0, .4],
+  ["egg noodle|noodle", 350],
+  ["egg yolk", 320, 17],
+  ["egg white", 50, 33],
+  ["aubergine|eggplant", 25, 300],
+  ["egg", 145, 50],
+  ["olive oil|vegetable oil|sunflower oil|rapeseed oil|coconut oil|sesame oil|oil", 884, 0, .92],
+  ["lard|dripping|suet", 900],
+  ["self[- ]raising flour|self[- ]rising flour", 350, 0, .53],
+  ["wholemeal flour|whole wheat flour", 340, 0, .53],
+  ["cornflour|cornstarch", 380, 0, .5],
+  ["flour", 364, 0, .53],
+  ["icing sugar|powdered sugar", 398, 0, .5],
+  ["brown sugar|muscovado|demerara", 380, 0, .85],
+  ["sugar", 400, 0, .85],
+  ["honey", 304, 0, 1.4],
+  ["golden syrup|treacle", 300, 0, 1.35],
+  ["maple syrup", 260, 0, 1.3],
+  ["cocoa", 228, 0, .45],
+  ["porridge oats|rolled oats|oats", 375, 0, .4],
+  ["breadcrumb", 395, 0, .45],
+  ["cooked rice", 130, 0, .8],
+  ["rice", 355, 0, .8],
+  ["spaghetti|penne|fusilli|macaroni|linguine|tagliatelle|lasagne|pasta|couscous", 355, 0, .6],
+  ["tortilla|wrap", 300, 60],
+  ["puff pastry", 400],
+  ["shortcrust|pastry", 450],
+  ["bread", 250, 35],
+  ["lentil", 350, 0, .8],
+  ["ground almond", 600, 0, .4],
+  ["almond|walnut|pecan|hazelnut|cashew|nuts", 620, 0, .55],
+  ["peanut", 580, 0, .55],
+  ["desiccated coconut|coconut", 660, 0, .35],
+  ["raisin|sultana|currant|dried fruit|mixed fruit", 300, 0, .6],
+  ["dates", 280],
+  ["chicken breast", 120, 170],
+  ["chicken thigh", 180, 100],
+  ["whole chicken", 200, 1500],
+  ["chicken", 165, 170],
+  ["beef mince|minced beef|ground beef|mince", 250],
+  ["steak", 200, 225],
+  ["beef", 220],
+  ["pork mince|minced pork", 260],
+  ["sausage", 280, 60],
+  ["bacon|lardons|pancetta", 300, 25],
+  ["ham", 120, 30],
+  ["pork", 240, 150],
+  ["lamb", 280, 150],
+  ["turkey", 150],
+  ["salmon", 200, 130],
+  ["cod|haddock|white fish|pollock|hake", 85, 140],
+  ["tuna", 110, 112],
+  ["prawn|shrimp", 90],
+  ["sweet potato", 86, 150],
+  ["potato", 77, 175],
+  ["spring onion|scallion", 32, 15],
+  ["shallot", 72, 30],
+  ["onion", 40, 150],
+  ["garlic", 150, 5],
+  ["leek", 61, 200],
+  ["carrot", 41, 80],
+  ["celery", 16, 40],
+  ["parsnip", 75, 150],
+  ["chilli|chili", 40, 15],
+  ["tomato pur[eé]e|tomato paste", 80, 0, 1.1],
+  ["passata", 30, 0, 1],
+  ["chopped tomato|tinned tomato|plum tomato|canned tomato", 22, 400],
+  ["cherry tomato", 18, 15],
+  ["tomato", 18, 120],
+  ["pepper", 30, 160],
+  ["mushroom", 22, 15],
+  ["courgette|zucchini", 17, 200],
+  ["broccoli", 34, 300],
+  ["cauliflower", 25, 600],
+  ["spinach|kale", 23, 0, .3],
+  ["cabbage", 25, 900],
+  ["sweetcorn|corn", 86, 0, .6],
+  ["peas", 80, 0, .6],
+  ["green bean|runner bean", 31],
+  ["lettuce|rocket|salad leaves", 15],
+  ["cucumber", 15, 300],
+  ["avocado", 160, 150],
+  ["ginger", 80, 20],
+  ["lemon", 29, 100],
+  ["lime", 30, 60],
+  ["orange", 47, 150],
+  ["apple", 52, 180],
+  ["banana", 89, 120],
+  ["strawberr|raspberr|blueberr|blackberr|berries", 45, 0, .6],
+  ["pear", 57, 180],
+  ["wine", 85],
+  ["beer|ale|cider", 43],
+  ["soy sauce", 53],
+  ["vinegar", 20],
+  ["worcestershire", 80],
+  ["ketchup", 110],
+  ["mayonnaise|mayo", 680],
+  ["mustard", 66],
+  ["pesto", 450],
+  ["jam|marmalade", 250, 0, 1.3],
+  ["gravy granules", 380],
+].map(([p, kcal, each, d]) => ({ re: new RegExp("\\b(" + p + ")", "i"), kcal, each: each || 0, d: d || 1 }));
+
+const UNIT_RE = /^(kg|kilograms?|g|grams?|grammes?|mg|ml|millilitres?|milliliters?|cl|l|litres?|liters?|oz|ounces?|lbs?|pounds?|tbsps?|tablespoons?|tbs|tsps?|teaspoons?|cups?|pints?|pinch(es)?|handfuls?|cloves?|slices?|rashers?|cans?|tins?|knobs?|sticks?|bunch(es)?|sprigs?|fillets?|breasts?|thighs?)\b\.?/i;
+
+function ingredientCalories(line) {
+  let s = line.toLowerCase().replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+  const food = FOODS.find(f => f.re.test(s));
+  if (!food) return null;
+  if (!food.kcal) return 0;
+  // "1 x 400g tin …" or "2 x 150g fillets"
+  let m = s.match(/^(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)\s*(kg|g|ml|l)\b/);
+  if (m) s = (m[1] * m[2]) + m[3] + s.slice(m[0].length);
+  const p = parseQty(s);
+  if (!p) return /^(a |an )/.test(s) ? food.kcal / 100 * (food.each || 15) : null;
+  let qty = p[0], rest = s.slice(p[1].length).replace(/^\s*[-–]\s*\d+(\.\d+)?/, "").trim();
+  const u = rest.match(UNIT_RE);
+  const PER = {
+    kg: 1000, g: 1, mg: .001, oz: 28.35, lb: 453.6, pound: 453.6, ounce: 28.35,
+    ml: food.d, millilitre: food.d, milliliter: food.d, cl: 10 * food.d, l: 1000 * food.d, litre: 1000 * food.d, liter: 1000 * food.d,
+    tbsp: 15 * food.d, tablespoon: 15 * food.d, tb: 15 * food.d, tsp: 5 * food.d, teaspoon: 5 * food.d, cup: 240 * food.d, pint: 568 * food.d,
+    pinch: .4, handful: 30, clove: 5, slice: food.each || 30, rasher: 25, can: food.each || 400, tin: food.each || 400,
+    knob: 15, stick: food.each || 40, bunch: 100, sprig: 1, fillet: food.each || 140, breast: food.each || 170, thigh: food.each || 100,
+    gram: 1, gramme: 1, kilogram: 1000,
+  };
+  // "litres" → "litre", "pinches" → "pinch", "tbsps" → "tbsp"
+  const word = u ? u[1].toLowerCase() : "";
+  const unit = [word, word.replace(/s$/, ""), word.replace(/es$/, "")].find(w => w in PER);
+  const per = unit ? PER[unit] : food.each;
+  if (!per) return null;
+  return qty * per * food.kcal / 100;
+}
+
+function calorieInfo(r) {
+  if (r.calories) return { value: r.calories, estimated: false };
+  const lines = r.ingredients || [];
+  if (!lines.length) return null;
+  let total = 0, unknown = 0;
+  for (const l of lines) { const k = ingredientCalories(l); if (k == null) unknown++; else total += k; }
+  // Only estimate when most of the list could be counted.
+  if (!total || unknown > lines.length / 3) return null;
+  const value = Math.round(total / (r.serves || 1) / 10) * 10;
+  return value ? { value, estimated: true } : null;
+}
+
 /* ---------- reading a pasted recipe ---------- */
 function parsePasted(raw) {
   const isIng = s => /^(ingredients?|you('|’)?ll need|you will need|what you need)\s*:?$/i.test(s);
@@ -512,10 +691,14 @@ function placeholder(r) {
   ph.append(icon("sprig"), h("span", {}, (r.title || "?").trim().charAt(0).toUpperCase()));
   return ph;
 }
-function metaRow(r, scaledServes) {
+function metaRow(r, scaledServes, long) {
+  const cal = calorieInfo(r);
+  const per = r.serves ? " per serving" : " in total";
   return h("div", { class: "meta" },
     r.time ? h("span", {}, icon("i-clock"), r.time) : null,
-    r.serves ? h("span", {}, icon("i-people"), "Serves " + (scaledServes || r.serves)) : null);
+    r.serves ? h("span", {}, icon("i-people"), "Serves " + (scaledServes || r.serves)) : null,
+    cal ? h("span", { title: (cal.estimated ? "About " : "") + cal.value + " kcal" + per + (cal.estimated ? ", worked out from the ingredients" : "") },
+      icon("i-flame"), (cal.estimated ? "≈ " : "") + cal.value.toLocaleString("en-GB") + " kcal" + (long ? per : "")) : null);
 }
 
 function renderList() {
@@ -616,7 +799,7 @@ function renderRecipe() {
       h("span", { class: "eyebrow" }, r.category || "Other"),
       h("h2", {}, r.title || "Untitled"),
       r.example ? h("span", { class: "example-tag" }, "Example recipe") : null,
-      metaRow(r, ui.serves),
+      metaRow(r, ui.serves, true),
       r.source ? h("div", { class: "source" }, "From ", /^https?:\/\//.test(r.source) ? h("a", { href: r.source, target: "_blank", rel: "noopener" }, r.source.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]) : r.source) : null,
       h("div", { class: "actions" },
         favBtn,
@@ -794,6 +977,7 @@ function renderForm() {
   const cat = h("select", { id: "f-cat" }, CATS.map(c => h("option", { value: c, selected: d.category === c }, c)));
   const serves = h("input", { id: "f-serves", type: "number", min: "1", inputmode: "numeric", value: d.serves || "" });
   const time = h("input", { id: "f-time", value: d.time || "", placeholder: "e.g. 1 hr" });
+  const calories = h("input", { id: "f-cal", type: "number", min: "1", inputmode: "numeric", value: d.calories || "", placeholder: "Work it out" });
   const ingr = h("textarea", { id: "f-ingr", rows: "8", placeholder: "200g self-raising flour\n2 eggs\n1 lemon, zested" });
   ingr.value = (d.ingredients || []).join("\n");
   const steps = h("textarea", { id: "f-steps", rows: "8", placeholder: "Heat the oven to 180°C (160°C fan).\nBeat the butter and sugar until pale." });
@@ -829,7 +1013,8 @@ function renderForm() {
   const box = h("div", { class: "box" },
     fromCard ? picField("cardPhoto") : null,
     f("f-title", "Recipe name", title),
-    h("div", { class: "row" }, f("f-cat", "Type", cat), f("f-serves", "Serves", serves), f("f-time", "Time", time)),
+    h("div", { class: "row" }, f("f-cat", "Type", cat), f("f-serves", "Serves", serves), f("f-time", "Time", time), f("f-cal", "Calories", calories)),
+    h("p", { style: "margin:-6px 0 0;color:var(--muted);font-size:13px" }, "Calories are per serving. Leave it blank and they're worked out from the ingredients, shown with ≈."),
     fromCard ? h("p", { style: "margin:0;color:var(--muted);font-size:14px" }, "The photo is saved with the recipe, so the rest is optional. Type the ingredients and method below if you'd like them searchable.") : null,
     f("f-ingr", "Ingredients", ingr, "one per line, amount first"),
     f("f-steps", "Method", steps, "one step per line"),
@@ -859,6 +1044,7 @@ function renderForm() {
         id: editing ? editing.id : crypto.randomUUID(),
         title: title.value.trim(), category: cat.value,
         serves: Number(serves.value) > 0 ? Math.round(Number(serves.value)) : null,
+        calories: Number(calories.value) > 0 ? Math.round(Number(calories.value)) : null,
         time: time.value.trim(), ingredients: lines(ingr), steps: lines(steps),
         notes: notes.value.trim(), source: source.value.trim(),
         favourite: editing?.favourite || false,
