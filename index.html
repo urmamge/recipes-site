@@ -1182,11 +1182,14 @@ function renderPasteStep(wrap) {
 /* ---------- the form (new + edit) ---------- */
 // The form edits a copy of the recipe's sections, with lists kept as text for the boxes.
 function toEditable(r) {
+  const keep = (id, placeholder) => id && id !== placeholder ? id : uid();
+  const joined = (v) => Array.isArray(v) ? v.join("\n") : (v || "");
+  // Imported recipes can arrive with a sauce or spice mix to create ("recipeId: new").
   return sectionsOf(r).map(s => ({
-    id: s.id === "main" ? uid() : s.id, kind: s.kind === "sub" ? "sub" : "part", name: s.name || "", first: !!s.first, active: 0,
+    id: keep(s.id, "main"), kind: s.kind === "sub" ? "sub" : "part", name: s.name || "", first: !!s.first, active: 0,
     options: s.options.map(o => s.kind === "sub"
-      ? { id: o.id, recipeId: o.recipeId || "", uses: o.uses || "", newTitle: "", newIng: "", newSteps: "" }
-      : { id: o.id === "o" ? uid() : o.id, name: o.name || "", ing: (o.ingredients || []).join("\n"), steps: (o.steps || []).join("\n") }),
+      ? { id: keep(o.id), recipeId: o.recipeId || "", uses: o.uses || "", newTitle: o.newTitle || "", newIng: joined(o.newIngredients || o.newIng), newSteps: joined(o.newSteps) }
+      : { id: keep(o.id, "o"), name: o.name || "", ing: joined(o.ingredients), steps: joined(o.steps) }),
   }));
 }
 const toLines = (t) => String(t || "").split("\n").map(s => s.trim()).filter(Boolean);
