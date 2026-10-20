@@ -265,6 +265,7 @@ a.btn { color: inherit; text-decoration: none; }
 .sub-recipe .recipe-body { padding-top: 0; }
 .sub-recipe .ingredients { position: static; background: var(--bg); }
 .uses-note { margin: 0; color: var(--muted); font-size: 14px; }
+.meal-serves { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 22px; font-weight: 600; font-size: 15px; }
 
 /* Form: parts, variations and extras */
 .ed-all { display: flex; flex-direction: column; gap: 14px; }
@@ -713,8 +714,53 @@ function dishTotals(r, choice, depth = 0) {
   }
   return t;
 }
+/* ---------- meals combined from other recipes ---------- */
+// The bits of a recipe a meal can take on their own: each version of each part ("Potatoes · Chips").
+function bitsOf(r) {
+  const parts = sectionsOf(r).filter(s => s.kind !== "sub");
+  const bits = parts.flatMap(s => s.options.map(o => ({ value: s.id + ":" + o.id, label: parts.length === 1 ? `${o.name || "Original"} version` : partTitle(s, o) })));
+  return bits.length > 1 ? bits : [];
+}
+// "20 Minute Whole Chicken (Slow cooker)" for a version of a whole dish, "Chips, from Chicken and Chips" for one part.
+function bitTitle(r, bit) {
+  return sectionsOf(r).filter(s => s.kind !== "sub").length === 1 ? `${r.title} (${bit.opt.name || "Original"})` : `${partTitle(bit.sec, bit.opt)}, from ${r.title}`;
+}
+function pickedBit(r, pick) {
+  if (!pick) return null;
+  const [sid, oid] = pick.split(":");
+  const sec = sectionsOf(r).find(s => s.id === sid);
+  const opt = sec?.options.find(o => o.id === oid);
+  return opt ? { sec, opt } : null;
+}
+// A meal's calories per serving: each recipe's own per-serving figure, added up.
+function mealCalories(r, choice) {
+  let total = 0, estimated = false;
+  for (const { opt } of chosen(r, choice)) {
+    const sr = findRecipe(opt.recipeId);
+    if (!sr) return null;
+    const bit = pickedBit(sr, opt.pick);
+    let c;
+    if (bit) {
+      const t = linesTotals(bit.opt.ingredients || []);
+      const counted = t.n && t.kcal && !(t.unknown > t.n / 3);
+      const onlyPart = sectionsOf(sr).filter(s => s.kind !== "sub").length === 1;
+      // One version of a whole dish: the recipe's own figure applies. One part of several:
+      // split the recipe's own figure by that part's share of the estimate.
+      const whole = dishTotals(sr, { ...choiceFor(sr), [bit.sec.id]: bit.sec.options.indexOf(bit.opt) });
+      c = sr.calories && onlyPart ? { value: sr.calories, estimated: false }
+        : sr.calories && counted && whole.kcal ? { value: sr.calories * t.kcal / whole.kcal, estimated: true }
+        : counted ? { value: t.kcal / (sr.serves || 1), estimated: true } : null;
+    } else c = calorieInfo(sr);
+    if (!c) return null;
+    total += c.value; estimated ||= c.estimated;
+  }
+  const value = Math.round(total / 10) * 10;
+  return value ? { value, estimated } : null;
+}
+
 function calorieInfo(r, choice) {
   if (r.calories) return { value: r.calories, estimated: false };
+  if (r.combo) return mealCalories(r, choice || choiceFor(r));
   const t = dishTotals(r, choice || choiceFor(r));
   // Only estimate when most of the list could be counted.
   if (!t.n || !t.kcal || t.unknown > t.n / 3) return null;
@@ -807,7 +853,8 @@ function render() {
 
 function thumbFor(r) {
   const t = h("div", { class: "thumb" });
-  const pic = r.photo || r.cardPhoto;
+  // A meal without its own photo borrows the first recipe's.
+  const pic = r.photo || r.cardPhoto || (r.combo ? sectionsOf(r).map(s => findRecipe(s.options[0]?.recipeId)?.photo).find(Boolean) : null);
   if (pic) {
     const img = h("img", { src: photoUrl(pic), alt: "", loading: "lazy" });
     img.onerror = () => img.replaceWith(placeholder(r));
@@ -822,7 +869,7 @@ function placeholder(r) {
 }
 function metaRow(r, scaledServes, long, choice) {
   const cal = calorieInfo(r, choice);
-  const per = r.serves ? " per serving" : " in total";
+  const per = r.serves || r.combo ? " per serving" : " in total";
   const ways = waysCount(r);
   return h("div", { class: "meta" },
     r.time ? h("span", {}, icon("i-clock"), r.time) : null,
@@ -969,6 +1016,19 @@ function renderRecipe() {
   const notesCard = r.notes ? h("div", { class: "notes-card" }, h("h4", {}, "Notes"), h("p", {}, r.notes)) : null;
   const hasText = parts.some(p => (p.opt.ingredients || []).length || (p.opt.steps || []).length) || subs.length;
 
+  // A combined meal: each recipe in its own box, scaled to the meal's servings.
+  if (r.combo) {
+    if (r.serves) app.append(h("div", { class: "meal-serves" }, h("span", {}, "Making it for"),
+      h("div", { class: "stepper", "aria-label": "Change servings" },
+        h("button", { type: "button", "aria-label": "Fewer servings", onclick: () => { if (ui.serves > 1) { ui.serves--; render(); } } }, "−"),
+        h("output", {}, `Serves ${ui.serves}`),
+        h("button", { type: "button", "aria-label": "More servings", onclick: () => { ui.serves++; render(); } }, "+"))));
+    for (const s of subs) app.append(subRecipeBox(s.sec, s.opt, factor, ui.serves || r.serves || null));
+    if (notesCard) app.append(notesCard);
+    if (cardPhoto) app.append(cardPhoto);
+    return;
+  }
+
   if (!hasText) {
     if (cardPhoto) app.append(cardPhoto);
     if (notesCard) app.append(notesCard);
@@ -1057,39 +1117,48 @@ function stepList(steps, keyBase) {
   return ol;
 }
 
-// A sauce or extra: its own recipe from the book, in its own box on this page.
-function subRecipeBox(sec, opt, factor) {
+// A sauce or extra (or one recipe of a combined meal): its own recipe from the book, in its own box.
+// serveTo is set for meals: the recipe is scaled to serve that many.
+function subRecipeBox(sec, opt, factor, serveTo) {
   const sr = findRecipe(opt.recipeId);
   const box = h("section", { class: "sub-recipe", id: "sub-" + sec.id });
   if (!sr) {
     box.append(h("p", { style: "margin:0;color:var(--muted)" }, `The ${sec.name || "extra"} recipe that was here has been deleted. Edit this recipe to choose another.`));
     return box;
   }
-  const share = usesFraction(opt.uses, dishTotals(sr, choiceFor(sr), 1));
-  // Scale the batch with the servings only when the dish uses all of it.
-  const f = share === 1 ? factor : 1;
-  const ownChoice = choiceFor(sr);
-  const own = chosen(sr, ownChoice).filter(x => x.sec.kind !== "sub");
+  const bit = pickedBit(sr, opt.pick);
+  let f, note;
+  if (serveTo) {
+    f = sr.serves ? serveTo / sr.serves : 1;
+    note = !sr.serves ? "" : f === 1 ? `Serves ${serveTo}.` : `Amounts changed to serve ${serveTo} instead of ${sr.serves}.`;
+  } else {
+    const share = usesFraction(opt.uses, dishTotals(sr, choiceFor(sr), 1));
+    // Scale the batch with the servings only when the dish uses all of it.
+    f = share === 1 ? factor : 1;
+    note = share === 1 ? "This dish uses all of it." : opt.uses ? `This dish uses ${opt.uses} of it. The amounts below make the whole batch.` : "";
+  }
+  const own = bit ? [bit] : chosen(sr, choiceFor(sr)).filter(x => x.sec.kind !== "sub");
   box.append(h("div", { class: "sub-head" },
     h("div", {},
-      h("span", { class: "eyebrow" }, [sec.name || "Also on this page", sec.first ? "Make this first" : ""].filter(Boolean).join(" · ")),
-      h("h3", {}, sr.title),
-      h("p", { class: "uses-note" }, share === 1 ? "This dish uses all of it." : opt.uses ? `This dish uses ${opt.uses} of it. The amounts below make the whole batch.` : "")),
+      h("span", { class: "eyebrow" }, [sec.name || (serveTo ? "" : "Also on this page"), sec.first ? "Make this first" : ""].filter(Boolean).join(" · ")),
+      h("h3", {}, bit ? bitTitle(sr, bit) : sr.title),
+      h("p", { class: "uses-note" }, note)),
     h("a", { class: "btn", href: "#r-" + sr.id }, "Open on its own")));
   const ing = h("aside", { class: "ingredients" }, h("div", { class: "panel-title" }, h("h3", {}, "Ingredients")));
   const method = h("section", {}, h("div", { class: "panel-title" }, h("h3", {}, "Method")));
   for (const { sec: s2, opt: o2 } of own) {
     if (own.length > 1) ing.append(h("h4", { class: "part-head" }, partTitle(s2, o2)));
+    if (!(o2.ingredients || []).length && !(o2.steps || []).length && sr.cardPhoto) method.append(h("a", { href: photoUrl(sr.cardPhoto), target: "_blank", rel: "noopener" }, h("img", { src: photoUrl(sr.cardPhoto), alt: "Photo of the original recipe for " + sr.title, style: "border-radius:12px" })));
     ing.append(ingredientList(o2.ingredients || [], f, `sub:${sr.id}:${s2.id}:${o2.id}`));
     if ((o2.steps || []).length) {
       if (own.length > 1) method.append(h("h4", { class: "part-head" }, partTitle(s2, o2)));
       method.append(stepList(o2.steps, `sub:${sr.id}:${s2.id}:${o2.id}`));
     }
   }
-  if (waysCount(sr) > 1) method.append(h("p", { class: "scaled-note" }, "This recipe has other versions. Open it on its own to see them."));
+  if (!bit && waysCount(sr) > 1) method.append(h("p", { class: "scaled-note" }, "This recipe has other versions. Open it on its own to see them."));
   if (sr.notes) method.append(h("div", { class: "notes-card" }, h("h4", {}, "Notes"), h("p", {}, sr.notes)));
   // A spice mix or stock with no method of its own just shows its ingredients.
-  const hasMethod = own.some(x => (x.opt.steps || []).length) || sr.notes || waysCount(sr) > 1;
+  const hasMethod = own.some(x => (x.opt.steps || []).length) || sr.notes || (!bit && waysCount(sr) > 1) || method.querySelector("img");
   box.append(h("div", { class: "recipe-body" }, ing, hasMethod ? method : null));
   return box;
 }
@@ -1162,7 +1231,10 @@ function renderAdd() {
       h("span", {}, "Take a photo of a recipe card or cookbook page. The photo is kept with the recipe, so you only need to type its name.")),
     h("button", { class: "way", type: "button", onclick: () => { draft = blank(); nav("#new"); } },
       h("span", { class: "ico" }, icon("i-pen")), h("strong", {}, "Write it out"),
-      h("span", {}, "Type it in yourself, one ingredient per line."))));
+      h("span", {}, "Type it in yourself, one ingredient per line.")),
+    h("button", { class: "way", type: "button", onclick: () => { draft = { ...blank(), combo: true }; nav("#new"); } },
+      h("span", { class: "ico" }, icon("i-ways")), h("strong", {}, "Combine recipes"),
+      h("span", {}, "Make a meal from recipes already in the book, like the chicken from one and the chips from another."))));
   app.append(wrap);
 }
 
@@ -1204,7 +1276,7 @@ function toEditable(r) {
   return sectionsOf(r).map(s => ({
     id: keep(s.id, "main"), kind: s.kind === "sub" ? "sub" : "part", name: s.name || "", first: !!s.first, active: 0,
     options: s.options.map(o => s.kind === "sub"
-      ? { id: keep(o.id), recipeId: o.recipeId || "", uses: o.uses || "", newTitle: o.newTitle || "", newIng: joined(o.newIngredients || o.newIng), newSteps: joined(o.newSteps) }
+      ? { id: keep(o.id), recipeId: o.recipeId || "", pick: o.pick || "", uses: o.uses || "", newTitle: o.newTitle || "", newIng: joined(o.newIngredients || o.newIng), newSteps: joined(o.newSteps) }
       : { id: keep(o.id, "o"), name: o.name || "", ing: joined(o.ingredients), steps: joined(o.steps) }),
   }));
 }
@@ -1215,12 +1287,18 @@ function renderForm() {
   if (ui.view === "edit" && !editing) { nav(""); return; }
   const d = editing ? { ...editing, ...(draft?._for === editing.id ? draft : {}) } : (draft || blank());
   const isNew = !editing;
-  const ed = d._ed || toEditable(d);
+  const combo = !!d.combo;
+  const newSub = () => ({ id: uid(), kind: "sub", name: "", first: false, active: 0, options: [{ id: uid(), recipeId: "", pick: "", uses: "", newTitle: "", newIng: "", newSteps: "" }] });
+  // A meal is only links to other recipes; it starts with one empty slot.
+  const ed = d._ed || (combo ? toEditable(d).filter(s => s.kind === "sub") : toEditable(d));
+  if (combo && !ed.length) ed.push(newSub());
 
   const wrap = h("div", { class: "sheet" });
   wrap.append(h("button", { class: "btn ghost back", type: "button", onclick: () => history.back() }, icon("i-back"), "Back"),
-    h("h2", {}, editing ? "Edit recipe" : "Check and save"),
-    h("p", { class: "lede" }, editing ? "Change anything, then save." : (d.title ? "Check it looks right, fix anything that doesn't, then save." : "Fill in what you know. Only the name is needed.")));
+    h("h2", {}, editing ? (combo ? "Edit meal" : "Edit recipe") : combo ? "Combine recipes" : "Check and save"),
+    h("p", { class: "lede" }, editing ? "Change anything, then save."
+      : combo ? "Give the meal a name, then pick the recipes that go into it."
+      : (d.title ? "Check it looks right, fix anything that doesn't, then save." : "Fill in what you know. Only the name is needed.")));
 
   const f = (id, label, el, hint) => h("div", { class: "field" }, h("label", { for: id }, label, hint ? h("span", { class: "hint" }, " · " + hint) : null), el);
   const title = h("input", { id: "f-title", value: d.title || "", placeholder: "e.g. Nan's lemon drizzle", autocomplete: "off" });
@@ -1270,6 +1348,7 @@ function renderForm() {
   };
 
   function drawSections() {
+    if (combo) return drawMeal();
     const parts = ed.filter(s => s.kind === "part");
     const subs = ed.filter(s => s.kind === "sub");
     const out = [];
@@ -1305,7 +1384,7 @@ function renderForm() {
       box.append(text(`s-${s.id}`, "Name on this page", s.name, "e.g. Sauce", v => s.name = v));
       s.options.forEach((o, i) => {
         const optBox = h("div", { class: "ed-sub-opt" });
-        const others = recipes.filter(x => x.id !== editing?.id)
+        const others = recipes.filter(x => x.id !== editing?.id && !x.combo)
           .sort((a, b) => (b.category === "Sauces & extras") - (a.category === "Sauces & extras") || a.title.localeCompare(b.title));
         const sel = h("select", { id: `r-${o.id}` },
           h("option", { value: "", disabled: true, selected: !o.recipeId }, "Choose a recipe…"),
@@ -1336,6 +1415,41 @@ function renderForm() {
       small("+ Add a sauce or extra recipe", () => { ed.push({ id: uid(), kind: "sub", name: "", first: false, active: 0, options: [{ id: uid(), recipeId: "", uses: "", newTitle: "", newIng: "", newSteps: "" }] }); drawSections(); })));
     sectionsBox.replaceChildren(...out);
   }
+  // The meal editor: each slot is a recipe from the book (or just one bit of it), with optional alternatives.
+  function drawMeal() {
+    const pickable = recipes.filter(x => x.id !== editing?.id && !x.combo).sort((a, b) => a.title.localeCompare(b.title));
+    const out = [h("div", { class: "ed-group-head" }, h("h3", {}, "Recipes in this meal"),
+      h("p", {}, "Pick recipes from the book. If a recipe has parts, you can take just one bit of it, like only the chips."))];
+    ed.forEach((s, si) => {
+      const box = h("div", { class: "ed-sec" });
+      box.append(text(`s-${s.id}`, "Name on this page", s.name, si === 0 ? "e.g. The chicken" : "e.g. The chips", v => s.name = v, "optional"));
+      s.options.forEach((o, i) => {
+        const optBox = h("div", { class: "ed-sub-opt" });
+        const sel = h("select", { id: `r-${o.id}` },
+          h("option", { value: "", disabled: true, selected: !o.recipeId }, "Choose a recipe…"),
+          pickable.map(x => h("option", { value: x.id, selected: o.recipeId === x.id }, x.title)));
+        sel.onchange = () => { o.recipeId = sel.value; o.pick = ""; drawSections(); };
+        optBox.append(f(`r-${o.id}`, s.options.length > 1 ? (i === 0 ? "Recipe" : "Or instead") : "Recipe", sel));
+        const sr = findRecipe(o.recipeId);
+        const bits = sr ? bitsOf(sr) : [];
+        if (bits.length) {
+          const bitSel = h("select", { id: `b-${o.id}` },
+            h("option", { value: "", selected: !o.pick }, "The whole recipe"),
+            bits.map(b => h("option", { value: b.value, selected: o.pick === b.value }, "Just the " + b.label)));
+          bitSel.onchange = () => o.pick = bitSel.value;
+          optBox.append(f(`b-${o.id}`, "Which bit", bitSel));
+        }
+        if (s.options.length > 1) optBox.append(h("div", { class: "ed-actions" }, small("Remove this choice", () => { s.options.splice(i, 1); drawSections(); }, "danger")));
+        box.append(optBox);
+      });
+      box.append(h("div", { class: "ed-actions" },
+        small("+ Or another recipe instead", () => { s.options.push({ id: uid(), recipeId: "", pick: "", uses: "", newTitle: "", newIng: "", newSteps: "" }); drawSections(); }),
+        ed.length > 1 ? small("Remove", () => { ed.splice(si, 1); drawSections(); }, "danger") : null));
+      out.push(box);
+    });
+    out.push(h("div", { class: "ed-actions" }, small("+ Add a recipe to this meal", () => { ed.push(newSub()); drawSections(); })));
+    sectionsBox.replaceChildren(...out);
+  }
   function addVariation(s) {
     const from = s.options[s.active] || s.options[0];
     s.options.push({ id: uid(), name: "", ing: from.ing, steps: from.steps });
@@ -1349,9 +1463,11 @@ function renderForm() {
   const fromCard = isNew && d._cardFile;
   const box = h("div", { class: "box" },
     fromCard ? picField("cardPhoto") : null,
-    f("f-title", "Recipe name", title),
+    f("f-title", combo ? "Meal name" : "Recipe name", title),
     h("div", { class: "row" }, f("f-cat", "Type", cat), f("f-serves", "Serves", serves), f("f-time", "Time", time), f("f-cal", "Calories", calories)),
-    h("p", { style: "margin:-6px 0 0;color:var(--muted);font-size:13px" }, "Calories are per serving. Leave it blank and they're worked out from the ingredients, shown with ≈."),
+    h("p", { style: "margin:-6px 0 0;color:var(--muted);font-size:13px" }, combo
+      ? "Calories are per serving. Leave it blank and each recipe's calories are added up. Set Serves and every recipe is scaled to match."
+      : "Calories are per serving. Leave it blank and they're worked out from the ingredients, shown with ≈."),
     fromCard ? h("p", { style: "margin:0;color:var(--muted);font-size:14px" }, "The photo is saved with the recipe, so the rest is optional. Type the ingredients and method below if you'd like them searchable.") : null,
     sectionsBox,
     f("f-notes", "Notes", notes, "tips, swaps, reminders"),
@@ -1367,7 +1483,8 @@ function renderForm() {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const fail = (t, focusId) => { msg.className = "msg err"; msg.textContent = t; if (focusId) document.getElementById(focusId)?.focus(); };
-    if (!title.value.trim()) return fail("Give the recipe a name first.", "f-title");
+    if (!title.value.trim()) return fail(combo ? "Give the meal a name first." : "Give the recipe a name first.", "f-title");
+    if (combo && !ed.some(s => s.options.some(o => o.recipeId))) return fail("Pick at least one recipe for the meal.");
     for (const s of ed.filter(x => x.kind === "sub")) for (const o of s.options) {
       if (o.recipeId === "new" && !o.newTitle.trim()) return fail("Give the new sauce or extra a name.", `nt-${o.id}`);
     }
@@ -1380,7 +1497,7 @@ function renderForm() {
         o.recipeId = sub.id;
       }
       const sections = ed.map(s => s.kind === "sub"
-        ? { id: s.id, kind: "sub", name: s.name.trim(), first: s.first, options: s.options.filter(o => o.recipeId).map(o => ({ id: o.id, recipeId: o.recipeId, uses: o.uses.trim() })) }
+        ? { id: s.id, kind: "sub", name: s.name.trim(), first: s.first, options: s.options.filter(o => o.recipeId).map(o => ({ id: o.id, recipeId: o.recipeId, uses: o.uses.trim(), pick: o.pick || "" })) }
         : { id: s.id, kind: "part", name: s.name.trim(), options: s.options.map((o, i) => ({ id: o.id, name: o.name.trim() || (s.options.length > 1 ? `Version ${i + 1}` : ""), ingredients: toLines(o.ing), steps: toLines(o.steps) })) })
         .filter(s => s.options.length);
       const firstPart = sections.find(s => s.kind === "part")?.options[0];
@@ -1401,6 +1518,7 @@ function renderForm() {
         // The first version's lists stay at the top level too, for anything that reads a plain recipe.
         ingredients: firstPart?.ingredients || [], steps: firstPart?.steps || [],
         sections: simple ? [] : sections,
+        combo,
         notes: notes.value.trim(), source: source.value.trim(),
         favourite: editing?.favourite || false,
         example: editing?.example || false,
