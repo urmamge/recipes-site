@@ -95,6 +95,7 @@ button { cursor: pointer; }
 .btn.danger { color: var(--danger); }
 .btn.danger.armed { background: var(--danger); color: var(--surface); border-color: var(--danger); }
 .btn[disabled] { opacity: .55; cursor: default; }
+a.btn { color: inherit; text-decoration: none; }
 .btn svg { width: 18px; height: 18px; flex: none; }
 
 /* Header */
@@ -250,6 +251,34 @@ button { cursor: pointer; }
 .check { display: flex; gap: 10px; align-items: center; font-size: 15px; }
 .check input { width: 18px; height: 18px; accent-color: var(--leaf); }
 
+/* Variations, parts and sauces on the recipe page */
+.pickers { display: flex; flex-direction: column; gap: 12px; padding-top: 22px; }
+.picker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.picker-label { font-weight: 600; font-size: 14px; min-width: 84px; }
+.part-head { font-family: var(--f-body); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--leaf); margin: 18px 0 2px; }
+.ingredients .part-head:first-of-type { margin-top: 0; }
+.jump { border: 0; background: none; padding: 0; color: var(--leaf); font-size: 14px; text-decoration: underline; text-underline-offset: 2px; }
+.sub-recipe { margin-top: 32px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); padding: 22px; scroll-margin-top: 16px; }
+.sub-recipe .sub-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+.sub-recipe .sub-head > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.sub-recipe h3 { font-size: 28px; }
+.sub-recipe .recipe-body { padding-top: 0; }
+.sub-recipe .ingredients { position: static; background: var(--bg); }
+.uses-note { margin: 0; color: var(--muted); font-size: 14px; }
+
+/* Form: parts, variations and extras */
+.ed-all { display: flex; flex-direction: column; gap: 14px; }
+.ed-sec { border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; background: var(--bg); }
+.ed-sec .field input, .ed-sec .field select, .ed-sec .field textarea { background: var(--surface); }
+.ed-sub-opt { display: flex; flex-direction: column; gap: 12px; }
+.ed-sub-opt + .ed-sub-opt { border-top: 1px dashed var(--line); padding-top: 12px; }
+.ed-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ed-actions .hint { font-size: 13px; color: var(--muted); }
+.ed-group-head { padding-top: 8px; border-top: 1px solid var(--line); }
+.ed-group-head h3 { font-size: 22px; padding-top: 14px; }
+.ed-group-head p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.btn.small { padding: 6px 13px; font-size: 14px; }
+
 /* Footer */
 footer { margin-top: 64px; padding-top: 22px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: baseline; justify-content: space-between; color: var(--muted); font-size: 14px; }
 footer .tunes { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
@@ -289,6 +318,7 @@ footer a:hover { border-bottom-color: var(--leaf); }
   <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-2.5h6L17 8h3a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
   <symbol id="i-paste" viewBox="0 0 24 24"><rect x="5" y="4.5" width="14" height="16.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 4.5V3h6v1.5M8.5 10h7M8.5 13.5h7M8.5 17h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l1-4.5L16 4.5a2.1 2.1 0 013 3L8 18.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 6.5l3 3" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-ways" viewBox="0 0 24 24"><path d="M12 3l9 4.5-9 4.5-9-4.5z M3 12l9 4.5 9-4.5 M3 16.5l9 4.5 9-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
   <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3c.8 3.4 5.5 5.6 5.5 10.5a5.5 5.5 0 01-11 0c0-2.4 1.1-4 2.4-5.2.2 1.7 1 2.8 2.1 3.2-.1-3 .2-5.8 1-8.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
 </svg>
@@ -319,7 +349,7 @@ footer a:hover { border-bottom-color: var(--leaf); }
 </div>
 
 <script>
-const CATS = ["Breakfast", "Lunch", "Dinner", "Soups", "Sides", "Baking", "Desserts", "Drinks", "Other"];
+const CATS = ["Breakfast", "Lunch", "Dinner", "Soups", "Sides", "Baking", "Desserts", "Drinks", "Sauces & extras", "Other"];
 const app = document.getElementById("app");
 const notice = document.getElementById("notice");
 const addBtn = document.getElementById("addBtn");
@@ -566,17 +596,14 @@ const FOODS = [
 
 const UNIT_RE = /^(kg|kilograms?|g|grams?|grammes?|mg|ml|millilitres?|milliliters?|cl|l|litres?|liters?|oz|ounces?|lbs?|pounds?|tbsps?|tablespoons?|tbs|tsps?|teaspoons?|cups?|pints?|pinch(es)?|handfuls?|cloves?|slices?|rashers?|cans?|tins?|knobs?|sticks?|bunch(es)?|sprigs?|fillets?|breasts?|thighs?)\b\.?/i;
 
-function ingredientCalories(line) {
-  let s = line.toLowerCase().replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
-  const food = FOODS.find(f => f.re.test(s));
-  if (!food) return null;
-  if (!food.kcal) return 0;
+// Grams for an amount like "200g", "2 tbsp" or "1 onion", or null if it can't be worked out.
+function gramsFor(s, food) {
   // "1 x 400g tin …" or "2 x 150g fillets"
-  let m = s.match(/^(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)\s*(kg|g|ml|l)\b/);
+  const m = s.match(/^(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)\s*(kg|g|ml|l)\b/);
   if (m) s = (m[1] * m[2]) + m[3] + s.slice(m[0].length);
   const p = parseQty(s);
-  if (!p) return /^(a |an )/.test(s) ? food.kcal / 100 * (food.each || 15) : null;
-  let qty = p[0], rest = s.slice(p[1].length).replace(/^\s*[-–]\s*\d+(\.\d+)?/, "").trim();
+  if (!p) return /^(a |an )/.test(s) ? (food.each || 15) : null;
+  const qty = p[0], rest = s.slice(p[1].length).replace(/^\s*[-–]\s*\d+(\.\d+)?/, "").trim();
   const u = rest.match(UNIT_RE);
   const PER = {
     kg: 1000, g: 1, mg: .001, oz: 28.35, lb: 453.6, pound: 453.6, ounce: 28.35,
@@ -590,20 +617,108 @@ function ingredientCalories(line) {
   const word = u ? u[1].toLowerCase() : "";
   const unit = [word, word.replace(/s$/, ""), word.replace(/es$/, "")].find(w => w in PER);
   const per = unit ? PER[unit] : food.each;
-  if (!per) return null;
-  return qty * per * food.kcal / 100;
+  return per ? qty * per : null;
 }
 
-function calorieInfo(r) {
+function ingredientInfo(line) {
+  const s = line.toLowerCase().replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+  const food = FOODS.find(f => f.re.test(s));
+  if (!food) return null;
+  const g = gramsFor(s, food);
+  if (g == null) return food.kcal ? null : { kcal: 0, g: 0 };
+  // Frying oil mostly stays in the pan: count roughly what the food soaks up.
+  const frying = food.kcal === 884 && (g > 200 || /for (deep[- ]?|shallow[- ]?)?frying/.test(s));
+  return { kcal: g * food.kcal / 100 * (frying ? .15 : 1), g };
+}
+
+/* ---------- recipes made of sections ----------
+   A recipe is one or more sections. A "part" section holds its own ingredients and method
+   (the chicken, the potatoes); a "sub" section points at another recipe in the book (a sauce,
+   a spice rub) shown in its own box. Any section can have several options to pick between.
+   Simple recipes store no sections: their top-level lists are the one section. */
+function sectionsOf(r) {
+  if (Array.isArray(r.sections) && r.sections.length) return r.sections;
+  return [{ id: "main", kind: "part", name: "", options: [{ id: "o", name: "", ingredients: r.ingredients || [], steps: r.steps || [] }] }];
+}
+const findRecipe = (id) => recipes.find(x => x.id === id);
+const uid = () => Math.random().toString(36).slice(2, 10);
+function waysCount(r) { return sectionsOf(r).reduce((n, s) => n * Math.max(1, s.options.length), 1); }
+function optionLabel(sec, opt, i) {
+  if (sec.kind === "sub") return findRecipe(opt.recipeId)?.title || "Missing recipe";
+  return opt.name || `Version ${i + 1}`;
+}
+// Which option is picked in each section, remembered on this device.
+function choiceFor(r) {
+  let saved = {};
+  try { saved = JSON.parse(store.get("choice:" + r.id) || "{}"); } catch {}
+  const c = {};
+  for (const s of sectionsOf(r)) { const i = saved[s.id]; c[s.id] = Number.isInteger(i) && i < s.options.length ? i : 0; }
+  return c;
+}
+function chosen(r, choice) {
+  return sectionsOf(r).map(sec => ({ sec, opt: sec.options[choice?.[sec.id] ?? 0] || sec.options[0] })).filter(x => x.opt);
+}
+
+// How much of a sauce/extra the dish uses, as a share of the batch: "all", "half", "2 tbsp", "100ml".
+const GENERIC = { kcal: 100, each: 0, d: 1 };
+function usesFraction(uses, batch) {
+  const s = String(uses || "").toLowerCase().trim();
+  if (!s || /^(all|the lot|everything|the whole|whole|one batch|1 batch)/.test(s)) return 1;
+  const words = [["three quarters", .75], ["two thirds", 2 / 3], ["half", .5], ["third", 1 / 3], ["quarter", .25]];
+  for (const [w, v] of words) if (s.includes(w)) return v;
+  const b = s.match(/^(\d+(?:\.\d+)?)\s*batch/);
+  if (b) return Math.min(+b[1], 4);
+  const p = parseQty(s);
+  if (p && !s.slice(p[1].length).trim()) return Math.min(p[0], 4);
+  const g = gramsFor(s, GENERIC);
+  return g && batch?.g ? Math.min(g / batch.g, 4) : null;
+}
+
+function linesTotals(lines) {
+  const t = { kcal: 0, g: 0, unknown: 0, n: lines.length };
+  for (const l of lines) { const i = ingredientInfo(l); if (!i) t.unknown++; else { t.kcal += i.kcal; t.g += i.g; } }
+  return t;
+}
+// Calories and weight of the dish for the picked options; sauces and extras count for the share used.
+function dishTotals(r, choice, depth = 0) {
+  if (depth > 0 && r.calories) return { kcal: r.calories * (r.serves || 1), g: 0, unknown: 0, n: 1 };
+  const t = { kcal: 0, g: 0, unknown: 0, n: 0 };
+  for (const { sec, opt } of chosen(r, choice)) {
+    if (sec.kind === "sub") {
+      if (depth > 0) continue;
+      t.n++;
+      const sr = findRecipe(opt.recipeId);
+      const st = sr && dishTotals(sr, choiceFor(sr), 1);
+      const share = st && !(st.unknown > st.n / 3) && st.kcal ? usesFraction(opt.uses, st) : null;
+      if (share == null) { t.unknown++; continue; }
+      t.kcal += st.kcal * share; t.g += st.g * share;
+    } else {
+      const lt = linesTotals(opt.ingredients || []);
+      t.kcal += lt.kcal; t.g += lt.g; t.unknown += lt.unknown; t.n += lt.n;
+    }
+  }
+  return t;
+}
+function calorieInfo(r, choice) {
   if (r.calories) return { value: r.calories, estimated: false };
-  const lines = r.ingredients || [];
-  if (!lines.length) return null;
-  let total = 0, unknown = 0;
-  for (const l of lines) { const k = ingredientCalories(l); if (k == null) unknown++; else total += k; }
+  const t = dishTotals(r, choice || choiceFor(r));
   // Only estimate when most of the list could be counted.
-  if (!total || unknown > lines.length / 3) return null;
-  const value = Math.round(total / (r.serves || 1) / 10) * 10;
+  if (!t.n || !t.kcal || t.unknown > t.n / 3) return null;
+  const value = Math.round(t.kcal / (r.serves || 1) / 10) * 10;
   return value ? { value, estimated: true } : null;
+}
+
+// Everything a search should find, every variation and sauce included.
+function searchText(r) {
+  const bits = [r.title, r.category, r.notes];
+  for (const s of sectionsOf(r)) {
+    bits.push(s.name);
+    for (const o of s.options) bits.push(o.name, ...(o.ingredients || []), s.kind === "sub" ? findRecipe(o.recipeId)?.title : "");
+  }
+  return bits.filter(Boolean).join(" ").toLowerCase();
+}
+function usedIn(id) {
+  return recipes.filter(x => x.id !== id && (x.sections || []).some(s => s.kind === "sub" && s.options.some(o => o.recipeId === id)));
 }
 
 /* ---------- reading a pasted recipe ---------- */
@@ -656,7 +771,7 @@ function route() {
   if (NEEDS_KEY.includes(view) && !key) { ui.after = location.hash; ui.view = "unlock"; render(); window.scrollTo(0, 0); return; }
   if (view === "recipe" && ui.openId !== id) {
     const r = recipes.find(x => x.id === id);
-    ui = { ...ui, openId: id, serves: r?.serves || null, done: new Set(), ticked: new Set() };
+    ui = { ...ui, openId: id, serves: r?.serves || null, choice: null, done: new Set(), ticked: new Set() };
   }
   ui.view = view;
   ui.editId = view === "edit" ? id : null;
@@ -691,14 +806,16 @@ function placeholder(r) {
   ph.append(icon("sprig"), h("span", {}, (r.title || "?").trim().charAt(0).toUpperCase()));
   return ph;
 }
-function metaRow(r, scaledServes, long) {
-  const cal = calorieInfo(r);
+function metaRow(r, scaledServes, long, choice) {
+  const cal = calorieInfo(r, choice);
   const per = r.serves ? " per serving" : " in total";
+  const ways = waysCount(r);
   return h("div", { class: "meta" },
     r.time ? h("span", {}, icon("i-clock"), r.time) : null,
     r.serves ? h("span", {}, icon("i-people"), "Serves " + (scaledServes || r.serves)) : null,
     cal ? h("span", { title: (cal.estimated ? "About " : "") + cal.value + " kcal" + per + (cal.estimated ? ", worked out from the ingredients" : "") },
-      icon("i-flame"), (cal.estimated ? "≈ " : "") + cal.value.toLocaleString("en-GB") + " kcal" + (long ? per : "")) : null);
+      icon("i-flame"), (cal.estimated ? "≈ " : "") + cal.value.toLocaleString("en-GB") + " kcal" + (long ? per : "")) : null,
+    !long && ways > 1 ? h("span", {}, icon("i-ways"), ways + " ways") : null);
 }
 
 function renderList() {
@@ -745,7 +862,7 @@ function renderList() {
     const q = ui.q.trim().toLowerCase();
     const list = recipes
       .filter(r => ui.cat === "All" || (ui.cat === "Favourites" ? r.favourite : r.category === ui.cat))
-      .filter(r => !q || [r.title, r.category, r.notes, ...(r.ingredients || [])].join(" ").toLowerCase().includes(q))
+      .filter(r => !q || searchText(r).includes(q))
       .sort((a, b) => (b.favourite ? 1 : 0) - (a.favourite ? 1 : 0) || (a.title || "").localeCompare(b.title || ""));
     if (!list.length) { grid.append(h("p", { style: "color:var(--muted)" }, "Nothing matches that. Try another word.")); return; }
     for (const r of list) {
@@ -763,12 +880,13 @@ function renderList() {
 }
 
 function renderRecipe() {
-  const r = recipes.find(x => x.id === ui.openId);
+  const r = findRecipe(ui.openId);
   if (!r) {
     app.append(h("div", { class: "empty" }, h("h2", {}, loaded ? "That recipe isn't here any more" : "Opening the recipe…"),
       loaded ? h("button", { class: "btn", type: "button", onclick: () => nav("") }, icon("i-back"), "All recipes") : null));
     return;
   }
+  if (!ui.choice) ui.choice = choiceFor(r);
   if (r.serves && !ui.serves) ui.serves = r.serves;
   const factor = r.serves && ui.serves ? ui.serves / r.serves : 1;
 
@@ -781,10 +899,16 @@ function renderRecipe() {
   const wakeBtn = h("button", { class: "btn", type: "button", "aria-pressed": String(!!wakeLock), onclick: toggleWake },
     icon("i-sun"), wakeLock ? "Screen stays on" : "Keep screen on");
   if (!("wakeLock" in navigator)) wakeBtn.hidden = true;
+  const users = usedIn(r.id);
   const delBtn = h("button", { class: "btn danger", type: "button" }, "Delete");
   let armed = null;
   delBtn.onclick = () => requireKey(async () => {
-    if (!armed) { delBtn.classList.add("armed"); delBtn.textContent = "Tap again to delete"; armed = setTimeout(() => { armed = null; delBtn.classList.remove("armed"); delBtn.textContent = "Delete"; }, 4000); return; }
+    if (!armed) {
+      delBtn.classList.add("armed");
+      delBtn.textContent = users.length ? `Used in ${users.length} other recipe${users.length === 1 ? "" : "s"}. Tap again to delete` : "Tap again to delete";
+      armed = setTimeout(() => { armed = null; delBtn.classList.remove("armed"); delBtn.textContent = "Delete"; }, 5000);
+      return;
+    }
     clearTimeout(armed);
     try {
       await api("/api/recipes/" + r.id, { method: "DELETE" });
@@ -799,25 +923,45 @@ function renderRecipe() {
       h("span", { class: "eyebrow" }, r.category || "Other"),
       h("h2", {}, r.title || "Untitled"),
       r.example ? h("span", { class: "example-tag" }, "Example recipe") : null,
-      metaRow(r, ui.serves, true),
+      metaRow(r, ui.serves, true, ui.choice),
       r.source ? h("div", { class: "source" }, "From ", /^https?:\/\//.test(r.source) ? h("a", { href: r.source, target: "_blank", rel: "noopener" }, r.source.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]) : r.source) : null,
+      users.length ? h("div", { class: "source" }, "Used in ", users.flatMap((u, i) => [i ? ", " : "", h("a", { href: "#r-" + u.id }, u.title)])) : null,
       h("div", { class: "actions" },
         favBtn,
         wakeBtn,
         h("button", { class: "btn", type: "button", onclick: () => nav("#edit-" + r.id) }, icon("i-pen"), "Edit"),
         delBtn))));
 
-  const hasText = (r.ingredients || []).length || (r.steps || []).length;
+  // Pick a version of each part that has more than one
+  const pickable = sectionsOf(r).filter(s => s.options.length > 1);
+  if (pickable.length) {
+    app.append(h("div", { class: "pickers" }, pickable.map(s => h("div", { class: "picker" },
+      h("span", { class: "picker-label" }, s.name || "Version"),
+      h("div", { class: "chips", role: "group", "aria-label": s.name || "Version" }, s.options.map((o, i) =>
+        h("button", { class: "chip", type: "button", "aria-pressed": String(ui.choice[s.id] === i), onclick: () => {
+          ui.choice = { ...ui.choice, [s.id]: i };
+          store.set("choice:" + r.id, JSON.stringify(ui.choice));
+          render();
+        } }, optionLabel(s, o, i))))))));
+  }
+
+  const picked = chosen(r, ui.choice);
+  const parts = picked.filter(x => x.sec.kind !== "sub");
+  const subs = picked.filter(x => x.sec.kind === "sub");
   const cardPhoto = r.cardPhoto ? h("div", { class: "card-photo" },
     h("div", { class: "panel-title" }, h("h3", {}, "The original recipe")),
     h("a", { href: photoUrl(r.cardPhoto), target: "_blank", rel: "noopener" }, h("img", { src: photoUrl(r.cardPhoto), alt: "Photo of the original recipe for " + r.title })),
     h("p", { class: "hint" }, "Tap the photo to see it full size.")) : null;
+  const notesCard = r.notes ? h("div", { class: "notes-card" }, h("h4", {}, "Notes"), h("p", {}, r.notes)) : null;
+  const hasText = parts.some(p => (p.opt.ingredients || []).length || (p.opt.steps || []).length) || subs.length;
 
   if (!hasText) {
     if (cardPhoto) app.append(cardPhoto);
-    if (r.notes) app.append(h("div", { class: "notes-card" }, h("h4", {}, "Notes"), h("p", {}, r.notes)));
+    if (notesCard) app.append(notesCard);
     return;
   }
+
+  for (const s of subs.filter(x => x.sec.first)) app.append(subRecipeBox(s.sec, s.opt, factor));
 
   // Ingredients
   const ing = h("aside", { class: "ingredients" });
@@ -829,34 +973,109 @@ function renderRecipe() {
       h("button", { type: "button", "aria-label": "More servings", onclick: () => { ui.serves++; render(); } }, "+")));
   }
   ing.append(head);
-  const ul = h("ul", { class: "ing-list" });
-  (r.ingredients || []).forEach((line, i) => {
-    const { qty, rest } = splitIngredient(line, factor);
-    const cb = h("input", { type: "checkbox", checked: ui.ticked.has(i) });
-    cb.onchange = () => cb.checked ? ui.ticked.add(i) : ui.ticked.delete(i);
-    ul.append(h("li", {}, h("label", {}, cb, h("span", {}, qty ? h("strong", {}, qty) : null, rest))));
-  });
-  ing.append(ul);
+  for (const { sec, opt } of parts) {
+    if (parts.length > 1) ing.append(h("h4", { class: "part-head" }, partTitle(sec, opt)));
+    ing.append(ingredientList(opt.ingredients || [], factor, `${sec.id}:${opt.id}`));
+  }
+  if (subs.length) {
+    const ul = h("ul", { class: "ing-list" });
+    for (const { sec, opt } of subs) {
+      const sr = findRecipe(opt.recipeId);
+      if (!sr) continue;
+      const k = `${sec.id}:${opt.id}:sub`;
+      const cb = h("input", { type: "checkbox", checked: ui.ticked.has(k) });
+      cb.onchange = () => cb.checked ? ui.ticked.add(k) : ui.ticked.delete(k);
+      ul.append(h("li", {}, h("label", {}, cb, h("span", {},
+        opt.uses && usesFraction(opt.uses) !== 1 ? [h("strong", {}, opt.uses), " of the "] : "",
+        sr.title, " ",
+        h("button", { class: "jump", type: "button", onclick: (e) => { e.preventDefault(); document.getElementById("sub-" + sec.id)?.scrollIntoView({ behavior: "smooth" }); } },
+          sec.first ? "(recipe above)" : "(recipe below)")))));
+    }
+    if (parts.length > 1) ing.append(h("h4", { class: "part-head" }, "From other recipes"));
+    ing.append(ul);
+  }
   if (factor !== 1) ing.append(h("p", { class: "scaled-note" }, `Amounts changed for ${ui.serves} instead of ${r.serves}. Check anything without a number.`));
 
   // Method
   const method = h("section", {});
   method.append(h("div", { class: "panel-title" }, h("h3", {}, "Method")));
-  if ((r.steps || []).length) method.append(h("p", { class: "steps-hint" }, "Tap a step when it's done, so you don't lose your place."));
-  const ol = h("ol", { class: "steps" });
-  (r.steps || []).forEach((s, i) => {
-    const li = h("li", { class: ui.done.has(i) ? "done" : "" });
-    li.append(h("button", { type: "button", "aria-pressed": String(ui.done.has(i)), onclick: () => {
-      ui.done.has(i) ? ui.done.delete(i) : ui.done.add(i);
-      li.classList.toggle("done"); li.firstChild.setAttribute("aria-pressed", String(ui.done.has(i)));
-    } }, h("span", {}, s)));
-    ol.append(li);
-  });
-  method.append(ol);
-  if (r.notes) method.append(h("div", { class: "notes-card" }, h("h4", {}, "Notes"), h("p", {}, r.notes)));
+  if (parts.some(p => (p.opt.steps || []).length)) method.append(h("p", { class: "steps-hint" }, "Tap a step when it's done, so you don't lose your place."));
+  for (const { sec, opt } of parts) {
+    if (!(opt.steps || []).length) continue;
+    if (parts.length > 1) method.append(h("h4", { class: "part-head" }, partTitle(sec, opt)));
+    method.append(stepList(opt.steps, `${sec.id}:${opt.id}`));
+  }
+  if (notesCard) method.append(notesCard);
   if (cardPhoto) method.append(cardPhoto);
 
   app.append(h("section", { class: "recipe-body" }, ing, method));
+
+  for (const s of subs.filter(x => !x.sec.first)) app.append(subRecipeBox(s.sec, s.opt, factor));
+}
+
+function partTitle(sec, opt) {
+  return [sec.name, sec.options.length > 1 ? opt.name : ""].filter(Boolean).join(" · ") || "Main";
+}
+
+function ingredientList(lines, factor, keyBase) {
+  const ul = h("ul", { class: "ing-list" });
+  lines.forEach((line, i) => {
+    const k = keyBase + ":" + i;
+    const { qty, rest } = splitIngredient(line, factor);
+    const cb = h("input", { type: "checkbox", checked: ui.ticked.has(k) });
+    cb.onchange = () => cb.checked ? ui.ticked.add(k) : ui.ticked.delete(k);
+    ul.append(h("li", {}, h("label", {}, cb, h("span", {}, qty ? h("strong", {}, qty) : null, rest))));
+  });
+  return ul;
+}
+
+function stepList(steps, keyBase) {
+  const ol = h("ol", { class: "steps" });
+  steps.forEach((s, i) => {
+    const k = keyBase + ":" + i;
+    const li = h("li", { class: ui.done.has(k) ? "done" : "" });
+    li.append(h("button", { type: "button", "aria-pressed": String(ui.done.has(k)), onclick: () => {
+      ui.done.has(k) ? ui.done.delete(k) : ui.done.add(k);
+      li.classList.toggle("done"); li.firstChild.setAttribute("aria-pressed", String(ui.done.has(k)));
+    } }, h("span", {}, s)));
+    ol.append(li);
+  });
+  return ol;
+}
+
+// A sauce or extra: its own recipe from the book, in its own box on this page.
+function subRecipeBox(sec, opt, factor) {
+  const sr = findRecipe(opt.recipeId);
+  const box = h("section", { class: "sub-recipe", id: "sub-" + sec.id });
+  if (!sr) {
+    box.append(h("p", { style: "margin:0;color:var(--muted)" }, `The ${sec.name || "extra"} recipe that was here has been deleted. Edit this recipe to choose another.`));
+    return box;
+  }
+  const share = usesFraction(opt.uses, dishTotals(sr, choiceFor(sr), 1));
+  // Scale the batch with the servings only when the dish uses all of it.
+  const f = share === 1 ? factor : 1;
+  const ownChoice = choiceFor(sr);
+  const own = chosen(sr, ownChoice).filter(x => x.sec.kind !== "sub");
+  box.append(h("div", { class: "sub-head" },
+    h("div", {},
+      h("span", { class: "eyebrow" }, [sec.name || "Also on this page", sec.first ? "Make this first" : ""].filter(Boolean).join(" · ")),
+      h("h3", {}, sr.title),
+      h("p", { class: "uses-note" }, share === 1 ? "This dish uses all of it." : opt.uses ? `This dish uses ${opt.uses} of it. The amounts below make the whole batch.` : "")),
+    h("a", { class: "btn", href: "#r-" + sr.id }, "Open on its own")));
+  const ing = h("aside", { class: "ingredients" }, h("div", { class: "panel-title" }, h("h3", {}, "Ingredients")));
+  const method = h("section", {}, h("div", { class: "panel-title" }, h("h3", {}, "Method")));
+  for (const { sec: s2, opt: o2 } of own) {
+    if (own.length > 1) ing.append(h("h4", { class: "part-head" }, partTitle(s2, o2)));
+    ing.append(ingredientList(o2.ingredients || [], f, `sub:${sr.id}:${s2.id}:${o2.id}`));
+    if ((o2.steps || []).length) {
+      if (own.length > 1) method.append(h("h4", { class: "part-head" }, partTitle(s2, o2)));
+      method.append(stepList(o2.steps, `sub:${sr.id}:${s2.id}:${o2.id}`));
+    }
+  }
+  if (waysCount(sr) > 1) method.append(h("p", { class: "scaled-note" }, "This recipe has other versions. Open it on its own to see them."));
+  if (sr.notes) method.append(h("div", { class: "notes-card" }, h("h4", {}, "Notes"), h("p", {}, sr.notes)));
+  box.append(h("div", { class: "recipe-body" }, ing, method));
+  return box;
 }
 
 async function toggleWake() {
@@ -961,11 +1180,23 @@ function renderPasteStep(wrap) {
 }
 
 /* ---------- the form (new + edit) ---------- */
+// The form edits a copy of the recipe's sections, with lists kept as text for the boxes.
+function toEditable(r) {
+  return sectionsOf(r).map(s => ({
+    id: s.id === "main" ? uid() : s.id, kind: s.kind === "sub" ? "sub" : "part", name: s.name || "", first: !!s.first, active: 0,
+    options: s.options.map(o => s.kind === "sub"
+      ? { id: o.id, recipeId: o.recipeId || "", uses: o.uses || "", newTitle: "", newIng: "", newSteps: "" }
+      : { id: o.id === "o" ? uid() : o.id, name: o.name || "", ing: (o.ingredients || []).join("\n"), steps: (o.steps || []).join("\n") }),
+  }));
+}
+const toLines = (t) => String(t || "").split("\n").map(s => s.trim()).filter(Boolean);
+
 function renderForm() {
-  const editing = ui.editId ? recipes.find(x => x.id === ui.editId) : null;
+  const editing = ui.editId ? findRecipe(ui.editId) : null;
   if (ui.view === "edit" && !editing) { nav(""); return; }
-  const d = editing ? { ...editing } : (draft || blank());
+  const d = editing ? { ...editing, ...(draft?._for === editing.id ? draft : {}) } : (draft || blank());
   const isNew = !editing;
+  const ed = d._ed || toEditable(d);
 
   const wrap = h("div", { class: "sheet" });
   wrap.append(h("button", { class: "btn ghost back", type: "button", onclick: () => history.back() }, icon("i-back"), "Back"),
@@ -978,17 +1209,13 @@ function renderForm() {
   const serves = h("input", { id: "f-serves", type: "number", min: "1", inputmode: "numeric", value: d.serves || "" });
   const time = h("input", { id: "f-time", value: d.time || "", placeholder: "e.g. 1 hr" });
   const calories = h("input", { id: "f-cal", type: "number", min: "1", inputmode: "numeric", value: d.calories || "", placeholder: "Work it out" });
-  const ingr = h("textarea", { id: "f-ingr", rows: "8", placeholder: "200g self-raising flour\n2 eggs\n1 lemon, zested" });
-  ingr.value = (d.ingredients || []).join("\n");
-  const steps = h("textarea", { id: "f-steps", rows: "8", placeholder: "Heat the oven to 180°C (160°C fan).\nBeat the butter and sugar until pale." });
-  steps.value = (d.steps || []).join("\n");
   const notes = h("textarea", { id: "f-notes", rows: "3", placeholder: "e.g. Works with oranges too. Takes 5 min less in the new oven." });
   notes.value = d.notes || "";
   const source = h("input", { id: "f-source", value: d.source || "", placeholder: "A website, a book, or who gave it to you" });
 
   // Two optional pictures: the finished dish, and the original recipe card/page.
   const pics = {
-    photo: { file: null, current: d.photo || null, label: "Photo of the dish", hint: "optional" },
+    photo: { file: d._photoFile || null, current: d.photo || null, label: "Photo of the dish", hint: "optional" },
     cardPhoto: { file: d._cardFile || null, current: d.cardPhoto || null, label: "Photo of the original recipe", hint: "a recipe card or cookbook page" },
   };
   const picField = (name) => {
@@ -1009,6 +1236,97 @@ function renderForm() {
     return h("div", { class: "field" }, h("span", { class: "lbl" }, p.label + " ", h("span", { class: "hint" }, "· " + p.hint)), row);
   };
 
+  /* --- ingredients & method, in parts, variations and extras --- */
+  const sectionsBox = h("div", { class: "ed-all" });
+  const small = (label, onclick, cls = "") => h("button", { class: "btn small " + cls, type: "button", onclick }, label);
+  const area = (id, label, hint, value, rows, placeholder, oninput) => {
+    const t = h("textarea", { id, rows, placeholder });
+    t.value = value; t.oninput = () => oninput(t.value);
+    return f(id, label, t, hint);
+  };
+  const text = (id, label, value, placeholder, oninput, hint) => {
+    const i = h("input", { id, value, placeholder, autocomplete: "off" });
+    i.oninput = () => oninput(i.value);
+    return f(id, label, i, hint);
+  };
+
+  function drawSections() {
+    const parts = ed.filter(s => s.kind === "part");
+    const subs = ed.filter(s => s.kind === "sub");
+    const out = [];
+
+    parts.forEach((s, pi) => {
+      const box = h("div", { class: "ed-sec" });
+      if (parts.length > 1) box.append(text(`p-${s.id}`, "Part", s.name, pi === 0 ? "e.g. The chicken" : "e.g. The potatoes", v => s.name = v));
+      if (s.options.length > 1) {
+        box.append(h("div", { class: "chips", role: "group", "aria-label": "Variations" },
+          s.options.map((o, i) => h("button", { class: "chip", type: "button", "aria-pressed": String(s.active === i), onclick: () => { s.active = i; drawSections(); } }, o.name || `Version ${i + 1}`)),
+          small("+ Add a variation", () => addVariation(s))));
+      }
+      const o = s.options[s.active] || s.options[0];
+      if (s.options.length > 1) box.append(text(`v-${o.id}`, "Variation name", o.name, "e.g. Roast", v => o.name = v));
+      box.append(
+        area(`i-${o.id}`, "Ingredients", "one per line, amount first", o.ing, "7", "200g self-raising flour\n2 eggs\n1 lemon, zested", v => o.ing = v),
+        area(`m-${o.id}`, "Method", "one step per line", o.steps, "7", "Heat the oven to 180°C (160°C fan).\nBeat the butter and sugar until pale.", v => o.steps = v));
+      const acts = h("div", { class: "ed-actions" });
+      if (s.options.length === 1) acts.append(small("+ Add a variation", () => addVariation(s)));
+      if (s.options.length > 1) acts.append(small("Remove this variation", () => { s.options.splice(s.active, 1); s.active = 0; drawSections(); }, "danger"));
+      if (parts.length > 1) acts.append(small("Remove this part", () => { ed.splice(ed.indexOf(s), 1); drawSections(); }, "danger"));
+      box.append(acts);
+      out.push(box);
+    });
+    out.push(h("div", { class: "ed-actions" },
+      small("+ Add another part", () => { ed.splice(parts.length, 0, { id: uid(), kind: "part", name: "", first: false, active: 0, options: [{ id: uid(), name: "", ing: "", steps: "" }] }); drawSections(); }),
+      h("span", { class: "hint" }, "A variation is another way to make it. Parts let you swap one bit, like chips or wedges, on its own.")));
+
+    out.push(h("div", { class: "ed-group-head" }, h("h3", {}, "Sauces & extras"),
+      h("p", {}, "Separate recipes shown on the same page, like a sauce or a spice rub. They're saved in the book too, so other recipes can use them.")));
+    subs.forEach(s => {
+      const box = h("div", { class: "ed-sec" });
+      box.append(text(`s-${s.id}`, "Name on this page", s.name, "e.g. Sauce", v => s.name = v));
+      s.options.forEach((o, i) => {
+        const optBox = h("div", { class: "ed-sub-opt" });
+        const others = recipes.filter(x => x.id !== editing?.id)
+          .sort((a, b) => (b.category === "Sauces & extras") - (a.category === "Sauces & extras") || a.title.localeCompare(b.title));
+        const sel = h("select", { id: `r-${o.id}` },
+          h("option", { value: "", disabled: true, selected: !o.recipeId }, "Choose a recipe…"),
+          h("option", { value: "new", selected: o.recipeId === "new" }, "+ Write a new one"),
+          others.map(x => h("option", { value: x.id, selected: o.recipeId === x.id }, x.title)));
+        sel.onchange = () => { o.recipeId = sel.value; drawSections(); };
+        optBox.append(f(`r-${o.id}`, s.options.length > 1 ? `Choice ${i + 1}` : "Recipe", sel));
+        if (o.recipeId === "new") {
+          optBox.append(
+            text(`nt-${o.id}`, "Its name", o.newTitle, "e.g. Peppercorn sauce", v => o.newTitle = v),
+            area(`ni-${o.id}`, "Its ingredients", "one per line", o.newIng, "5", "1 tbsp butter\n1 shallot, chopped", v => o.newIng = v),
+            area(`nm-${o.id}`, "Its method", "one step per line", o.newSteps, "5", "Melt the butter and soften the shallot.", v => o.newSteps = v));
+        }
+        optBox.append(text(`u-${o.id}`, "How much this dish uses", o.uses, "All of it, or e.g. 2 tbsp", v => o.uses = v, "for the calories"));
+        if (s.options.length > 1) optBox.append(h("div", { class: "ed-actions" }, small("Remove this choice", () => { s.options.splice(i, 1); drawSections(); }, "danger")));
+        box.append(optBox);
+      });
+      const first = h("input", { id: `first-${s.id}`, type: "checkbox", checked: s.first });
+      first.onchange = () => s.first = first.checked;
+      box.append(
+        h("label", { class: "check", for: `first-${s.id}` }, first, "Show it above the main recipe (make this first)"),
+        h("div", { class: "ed-actions" },
+          small("+ Add another choice", () => { s.options.push({ id: uid(), recipeId: "", uses: "", newTitle: "", newIng: "", newSteps: "" }); drawSections(); }),
+          small("Remove", () => { ed.splice(ed.indexOf(s), 1); drawSections(); }, "danger")));
+      out.push(box);
+    });
+    out.push(h("div", { class: "ed-actions" },
+      small("+ Add a sauce or extra recipe", () => { ed.push({ id: uid(), kind: "sub", name: "", first: false, active: 0, options: [{ id: uid(), recipeId: "", uses: "", newTitle: "", newIng: "", newSteps: "" }] }); drawSections(); })));
+    sectionsBox.replaceChildren(...out);
+  }
+  function addVariation(s) {
+    const from = s.options[s.active] || s.options[0];
+    s.options.push({ id: uid(), name: "", ing: from.ing, steps: from.steps });
+    if (s.options.length === 2 && !from.name) from.name = "Original";
+    s.active = s.options.length - 1;
+    drawSections();
+    document.getElementById(`v-${s.options[s.active].id}`)?.focus();
+  }
+  drawSections();
+
   const fromCard = isNew && d._cardFile;
   const box = h("div", { class: "box" },
     fromCard ? picField("cardPhoto") : null,
@@ -1016,8 +1334,7 @@ function renderForm() {
     h("div", { class: "row" }, f("f-cat", "Type", cat), f("f-serves", "Serves", serves), f("f-time", "Time", time), f("f-cal", "Calories", calories)),
     h("p", { style: "margin:-6px 0 0;color:var(--muted);font-size:13px" }, "Calories are per serving. Leave it blank and they're worked out from the ingredients, shown with ≈."),
     fromCard ? h("p", { style: "margin:0;color:var(--muted);font-size:14px" }, "The photo is saved with the recipe, so the rest is optional. Type the ingredients and method below if you'd like them searchable.") : null,
-    f("f-ingr", "Ingredients", ingr, "one per line, amount first"),
-    f("f-steps", "Method", steps, "one step per line"),
+    sectionsBox,
     f("f-notes", "Notes", notes, "tips, swaps, reminders"),
     f("f-source", "Where it's from", source),
     picField("photo"),
@@ -1030,10 +1347,26 @@ function renderForm() {
   const form = h("form", {}, box);
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    if (!title.value.trim()) { msg.className = "msg err"; msg.textContent = "Give the recipe a name first."; title.focus(); return; }
+    const fail = (t, focusId) => { msg.className = "msg err"; msg.textContent = t; if (focusId) document.getElementById(focusId)?.focus(); };
+    if (!title.value.trim()) return fail("Give the recipe a name first.", "f-title");
+    for (const s of ed.filter(x => x.kind === "sub")) for (const o of s.options) {
+      if (o.recipeId === "new" && !o.newTitle.trim()) return fail("Give the new sauce or extra a name.", `nt-${o.id}`);
+    }
     saveBtn.disabled = true; msg.className = "msg"; msg.textContent = "Saving…";
-    const lines = (t) => t.value.split("\n").map(s => s.trim()).filter(Boolean);
     try {
+      // New sauces and extras become recipes of their own first, so this one can point at them.
+      for (const s of ed.filter(x => x.kind === "sub")) for (const o of s.options) {
+        if (o.recipeId !== "new") continue;
+        const sub = await saveRecipe({ id: crypto.randomUUID(), title: o.newTitle.trim(), category: "Sauces & extras", ingredients: toLines(o.newIng), steps: toLines(o.newSteps) });
+        o.recipeId = sub.id;
+      }
+      const sections = ed.map(s => s.kind === "sub"
+        ? { id: s.id, kind: "sub", name: s.name.trim(), first: s.first, options: s.options.filter(o => o.recipeId).map(o => ({ id: o.id, recipeId: o.recipeId, uses: o.uses.trim() })) }
+        : { id: s.id, kind: "part", name: s.name.trim(), options: s.options.map((o, i) => ({ id: o.id, name: o.name.trim() || (s.options.length > 1 ? `Version ${i + 1}` : ""), ingredients: toLines(o.ing), steps: toLines(o.steps) })) })
+        .filter(s => s.options.length);
+      const firstPart = sections.find(s => s.kind === "part")?.options[0];
+      const simple = sections.length === 1 && sections[0].kind === "part" && sections[0].options.length === 1;
+
       const ids = {};
       for (const name of ["photo", "cardPhoto"]) {
         const p = pics[name];
@@ -1045,7 +1378,10 @@ function renderForm() {
         title: title.value.trim(), category: cat.value,
         serves: Number(serves.value) > 0 ? Math.round(Number(serves.value)) : null,
         calories: Number(calories.value) > 0 ? Math.round(Number(calories.value)) : null,
-        time: time.value.trim(), ingredients: lines(ingr), steps: lines(steps),
+        time: time.value.trim(),
+        // The first version's lists stay at the top level too, for anything that reads a plain recipe.
+        ingredients: firstPart?.ingredients || [], steps: firstPart?.steps || [],
+        sections: simple ? [] : sections,
         notes: notes.value.trim(), source: source.value.trim(),
         favourite: editing?.favourite || false,
         example: editing?.example || false,
@@ -1058,18 +1394,18 @@ function renderForm() {
       history.replaceState("", "", location.pathname + location.search + "#r-" + saved.id);
       route();
     } catch (err) {
-      saveBtn.disabled = false; msg.className = "msg err";
-      msg.textContent = err?.code === "wrong_key" ? "The kitchen code needs entering again. Your recipe is still here."
+      saveBtn.disabled = false;
+      fail(err?.code === "wrong_key" ? "The kitchen code needs entering again. Your recipe is still here."
         : err?.code === "too_large" ? "That photo is too big. Try a different one."
         : err?.code === "not_image" ? "That photo's format isn't supported. Try a JPEG or PNG."
-        : "It didn't save. Check the internet connection and press Save again.";
-      if (err?.code === "wrong_key") { ui.after = location.hash; const keepDraft = { ...d, ...collect() }; draft = keepDraft; requireKey(() => {}); }
+        : "It didn't save. Check the internet connection and press Save again.");
+      if (err?.code === "wrong_key") {
+        draft = { ...d, _for: editing?.id, _ed: ed, title: title.value, category: cat.value, serves: serves.value, time: time.value, calories: calories.value,
+          notes: notes.value, source: source.value, _cardFile: pics.cardPhoto.file, _photoFile: pics.photo.file };
+        ui.after = location.hash; requireKey(() => {});
+      }
     }
   });
-  function collect() {
-    return { title: title.value, category: cat.value, serves: serves.value, time: time.value, ingredients: lines2(ingr), steps: lines2(steps), notes: notes.value, source: source.value, _cardFile: pics.cardPhoto.file };
-  }
-  function lines2(t) { return t.value.split("\n"); }
   wrap.append(form);
   app.append(wrap);
   if (isNew && !d.title) title.focus();
