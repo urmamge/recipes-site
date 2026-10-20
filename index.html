@@ -1076,7 +1076,9 @@ function subRecipeBox(sec, opt, factor) {
   }
   if (waysCount(sr) > 1) method.append(h("p", { class: "scaled-note" }, "This recipe has other versions. Open it on its own to see them."));
   if (sr.notes) method.append(h("div", { class: "notes-card" }, h("h4", {}, "Notes"), h("p", {}, sr.notes)));
-  box.append(h("div", { class: "recipe-body" }, ing, method));
+  // A spice mix or stock with no method of its own just shows its ingredients.
+  const hasMethod = own.some(x => (x.opt.steps || []).length) || sr.notes || waysCount(sr) > 1;
+  box.append(h("div", { class: "recipe-body" }, ing, hasMethod ? method : null));
   return box;
 }
 
