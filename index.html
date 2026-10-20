@@ -469,6 +469,8 @@ const FOODS = [
   ["lemon juice|lime juice|juice of|juiced|squeeze of", 22, 30],
   ["stock cube|bouillon|stock pot|oxo", 250, 10],
   ["stock|broth", 5],
+  // Jar sauces before "pasta" and "tomato", which their names contain.
+  ["dolmio|ragu|loyd grossman|pasta sauce|bolognese sauce|bolognaise sauce|arrabbiata|tomato and basil sauce|tomato sauce", 45, 0, 1],
   ["coconut milk", 180, 0, 1],
   ["condensed milk", 320, 0, 1.3],
   ["buttermilk", 40],
@@ -596,7 +598,7 @@ const FOODS = [
   ["gravy granules", 380],
 ].map(([p, kcal, each, d]) => ({ re: new RegExp("\\b(" + p + ")", "i"), kcal, each: each || 0, d: d || 1 }));
 
-const UNIT_RE = /^(kg|kilograms?|g|grams?|grammes?|mg|ml|millilitres?|milliliters?|cl|l|litres?|liters?|oz|ounces?|lbs?|pounds?|tbsps?|tablespoons?|tbs|tsps?|teaspoons?|cups?|pints?|pinch(es)?|handfuls?|cloves?|slices?|rashers?|cans?|tins?|knobs?|sticks?|bunch(es)?|sprigs?|fillets?|breasts?|thighs?)\b\.?/i;
+const UNIT_RE = /^(kg|kilograms?|g|grams?|grammes?|mg|ml|millilitres?|milliliters?|cl|l|litres?|liters?|oz|ounces?|lbs?|pounds?|tbsps?|tablespoons?|tbs|tsps?|teaspoons?|cups?|pints?|pinch(es)?|handfuls?|cloves?|slices?|rashers?|cans?|tins?|knobs?|sticks?|bunch(es)?|sprigs?|fillets?|breasts?|thighs?|jars?)\b\.?/i;
 
 // Grams for an amount like "200g", "2 tbsp" or "1 onion", or null if it can't be worked out.
 function gramsFor(s, food) {
@@ -613,6 +615,7 @@ function gramsFor(s, food) {
     tbsp: 15 * food.d, tablespoon: 15 * food.d, tb: 15 * food.d, tsp: 5 * food.d, teaspoon: 5 * food.d, cup: 240 * food.d, pint: 568 * food.d,
     pinch: .4, handful: 30, clove: 5, slice: food.each || 30, rasher: 25, can: food.each || 400, tin: food.each || 400,
     knob: 15, stick: food.each || 40, bunch: 100, sprig: 1, fillet: food.each || 140, breast: food.each || 170, thigh: food.each || 100,
+    jar: food.each || 500,
     gram: 1, gramme: 1, kilogram: 1000,
   };
   // "litres" → "litre", "pinches" → "pinch", "tbsps" → "tbsp"
@@ -623,14 +626,23 @@ function gramsFor(s, food) {
 }
 
 function ingredientInfo(line) {
-  const s = line.toLowerCase().replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+  // "1 jar (500g) pasta sauce" → "500g pasta sauce": a weight in brackets beats a guessed jar size.
+  const packed = line.toLowerCase().replace(/^(\d+(?:\.\d+)?)\s*(?:x\s*)?(?:jars?|packs?|packets?|tins?|cans?|bags?|tubs?|pots?|bottles?)?\s*\((\d+(?:\.\d+)?)\s*(kg|g|ml|l)\)/, (_, n, w, u) => `${n * w}${u}`);
+  const s = packed.replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim()
+    .replace(/^(around|about|approx\.?|approximately|roughly|just under|just over|~)\s+/, "");
   const food = FOODS.find(f => f.re.test(s));
   if (!food) return null;
   const g = gramsFor(s, food);
   if (g == null) return food.kcal ? null : { kcal: 0, g: 0 };
   // Frying oil mostly stays in the pan: count roughly what the food soaks up.
   const frying = food.kcal === 884 && (g > 200 || /for (deep[- ]?|shallow[- ]?)?frying/.test(s));
-  return { kcal: g * food.kcal / 100 * (frying ? .15 : 1), g };
+  return { kcal: g * minceKcal(s, food.kcal) / 100 * (frying ? .15 : 1), g };
+}
+// Mince varies a lot with its fat: 5% beef mince is about 125 kcal/100g, 20% about 255.
+function minceKcal(s, kcal) {
+  if (!/\bmince|minced\b/.test(s)) return kcal;
+  const pct = s.match(/(\d+(?:\.\d+)?)\s*%/)?.[1] ?? (/extra[- ]lean/.test(s) ? 5 : /\blean\b/.test(s) ? 10 : null);
+  return pct == null ? kcal : Math.round(80 + 8.7 * Math.min(+pct, 30));
 }
 
 /* ---------- recipes made of sections ----------
