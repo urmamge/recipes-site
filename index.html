@@ -378,11 +378,13 @@ async function api(path, opts = {}) {
   return data;
 }
 async function loadRecipes() {
+  if (!key) return;
   try {
     const { recipes: list } = await api("/api/recipes");
     recipes = list; loaded = true; loadFailed = false;
     store.set("recipesCache", JSON.stringify(list));
-  } catch {
+  } catch (e) {
+    if (e.code === "wrong_key") { recipes = []; store.set("recipesCache", null); return route(); }
     loadFailed = true;
     if (!loaded) say("Couldn't reach the recipe book. Showing the copy saved on this device.");
   }
@@ -413,7 +415,7 @@ async function shrink(file, max = 1600) {
     return await new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(), "image/jpeg", .85));
   } catch { return file; }
 }
-const photoUrl = (id) => API + "/photos/" + id;
+const photoUrl = (id) => API + "/photos/" + id + "?k=" + encodeURIComponent(key || "");
 
 /* ---------- small DOM helper ---------- */
 function h(tag, attrs, ...kids) {
@@ -758,7 +760,6 @@ function parsePasted(raw) {
 }
 
 /* ---------- routing (so the back button and shared links work) ---------- */
-const NEEDS_KEY = ["add", "new", "edit"];
 function nav(hash) {
   if (!hash) { history.pushState("", "", location.pathname + location.search); route(); }
   else if (location.hash === hash) route();
@@ -768,7 +769,8 @@ function route() {
   const hsh = location.hash.slice(1);
   const [view, id] = hsh.startsWith("r-") ? ["recipe", hsh.slice(2)] : hsh.startsWith("edit-") ? ["edit", hsh.slice(5)] : hsh === "new" ? ["new", null] : hsh === "add" ? ["add", null] : ["list", null];
   if (view !== "recipe") releaseWake();
-  if (NEEDS_KEY.includes(view) && !key) { ui.after = location.hash; ui.view = "unlock"; render(); window.scrollTo(0, 0); return; }
+  // The whole book is private, so every page needs the kitchen code.
+  if (!key) { ui.after = location.hash; ui.view = "unlock"; render(); window.scrollTo(0, 0); return; }
   if (view === "recipe" && ui.openId !== id) {
     const r = recipes.find(x => x.id === id);
     ui = { ...ui, openId: id, serves: r?.serves || null, choice: null, done: new Set(), ticked: new Set() };
@@ -1094,10 +1096,9 @@ function renderUnlock() {
   const msg = h("span", { class: "msg" });
   const btn = h("button", { class: "btn primary", type: "submit" }, "Unlock");
   const form = h("form", { class: "unlock" },
-    h("button", { class: "btn ghost back", type: "button", onclick: () => history.back() }, icon("i-back"), "Back"),
     h("div", { class: "box" },
       h("h2", { style: "font-size:28px" }, "Enter the kitchen code"),
-      h("p", { style: "margin:0;color:var(--muted)" }, "You need it to add or change recipes. Each phone or computer only asks once."),
+      h("p", { style: "margin:0;color:var(--muted)" }, "The recipe book is private, so it needs the kitchen code to open. Each phone or computer only asks once."),
       h("div", { class: "field" }, h("label", { for: "code" }, "Kitchen code"), input),
       h("div", { class: "form-actions" }, msg, btn)));
   form.addEventListener("submit", async (e) => {
@@ -1108,6 +1109,7 @@ function renderUnlock() {
     setKey(code);
     try {
       await api("/api/check");
+      loadRecipes();
       const after = ui.after; ui.after = "";
       if (after && after !== location.hash) location.hash = after; else route();
     } catch (err) {
@@ -1417,7 +1419,7 @@ function renderForm() {
 addBtn.onclick = () => nav("#add");
 
 /* ---------- start up ---------- */
-try { recipes = JSON.parse(store.get("recipesCache") || "[]"); } catch { recipes = []; }
+try { recipes = key ? JSON.parse(store.get("recipesCache") || "[]") : []; } catch { recipes = []; }
 route();
 loadRecipes();
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && (ui.view === "list" || ui.view === "recipe")) loadRecipes(); });
