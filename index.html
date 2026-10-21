@@ -294,6 +294,20 @@ footer a { color: var(--leaf); text-decoration: none; border-bottom: 1px solid v
 footer a:hover { border-bottom-color: var(--leaf); }
 footer .tunes .btn.small { padding: 3px 10px; font-size: 13px; }
 .tune-kind { color: var(--muted); font-size: 13px; }
+.tune-play { border: 0; background: none; padding: 0; color: var(--leaf); font: inherit; display: inline-flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--leaf-soft); }
+.tune-play:hover { border-bottom-color: var(--leaf); }
+.tune-play svg { width: 14px; height: 14px; }
+.tune-play[aria-pressed="true"] { font-weight: 700; }
+.player {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+  background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -6px 20px rgba(29,45,33,.12);
+  display: flex; align-items: flex-start; gap: 8px; justify-content: center;
+}
+.player iframe { border: 0; border-radius: 12px; width: 100%; max-width: 680px; display: block; }
+.player-close { border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 34px; height: 34px; border-radius: 50%; font-size: 20px; line-height: 1; flex: none; }
+body.has-player { padding-bottom: 100px; }
+body.has-player.player-tall { padding-bottom: 172px; }
 .bit-picks { display: flex; flex-direction: column; gap: 8px; }
 .song-editor { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 680px; }
 .song-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -335,6 +349,7 @@ footer .tunes .btn.small { padding: 3px 10px; font-size: 13px; }
   <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-2.5h6L17 8h3a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
   <symbol id="i-paste" viewBox="0 0 24 24"><rect x="5" y="4.5" width="14" height="16.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 4.5V3h6v1.5M8.5 10h7M8.5 13.5h7M8.5 17h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l1-4.5L16 4.5a2.1 2.1 0 013 3L8 18.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 6.5l3 3" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></symbol>
   <symbol id="i-ways" viewBox="0 0 24 24"><path d="M12 3l9 4.5-9 4.5-9-4.5z M3 12l9 4.5 9-4.5 M3 16.5l9 4.5 9-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
   <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3c.8 3.4 5.5 5.6 5.5 10.5a5.5 5.5 0 01-11 0c0-2.4 1.1-4 2.4-5.2.2 1.7 1 2.8 2.1 3.2-.1-3 .2-5.8 1-8.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
@@ -678,7 +693,10 @@ function choiceFor(r) {
   let saved = {};
   try { saved = JSON.parse(store.get("choice:" + r.id) || "{}"); } catch {}
   const c = {};
-  for (const s of sectionsOf(r)) { const i = saved[s.id]; c[s.id] = Number.isInteger(i) && i < s.options.length ? i : 0; }
+  for (const s of sectionsOf(r)) {
+    const i = saved[s.id]; c[s.id] = Number.isInteger(i) && i < s.options.length ? i : 0;
+    if (Number.isInteger(saved[s.id + "~bit"])) c[s.id + "~bit"] = saved[s.id + "~bit"]; // a meal's picked bit
+  }
   return c;
 }
 function chosen(r, choice) {
@@ -750,9 +768,18 @@ function pickedBits(r, pick) {
     return opt ? { sec, opt } : null;
   }).filter(Boolean);
 }
-// Calories per serving of one recipe in a meal, or of the bits of it the meal takes, added together.
-function partCalories(sr, pick) {
-  const bits = pickedBits(sr, pick);
+// When a meal takes several bits of one recipe, the page shows one at a time: which one, per device.
+function bitChoice(meal, sec, count) {
+  let saved = {};
+  try { saved = JSON.parse(store.get("choice:" + meal.id) || "{}"); } catch {}
+  const i = (ui.view === "recipe" && ui.openId === meal.id ? ui.choice?.[sec.id + "~bit"] : null) ?? saved[sec.id + "~bit"];
+  return Number.isInteger(i) && i < count ? i : 0;
+}
+// Calories per serving of one recipe in a meal, or of the bits of it the meal takes.
+// With several bits and a picked one (sel), only that bit counts.
+function partCalories(sr, pick, sel) {
+  let bits = pickedBits(sr, pick);
+  if (bits.length > 1 && sel != null) bits = [bits[sel] || bits[0]];
   if (!bits.length) return calorieInfo(sr);
   const each = bits.map(bit => bitCalories(sr, bit));
   if (each.every(c => !c)) return null;
@@ -779,7 +806,7 @@ function mealCalories(r, choice, ratios) {
   let total = 0, estimated = false, missing = 0;
   for (const { sec, opt } of chosen(r, choice)) {
     const sr = findRecipe(opt.recipeId);
-    const c = sr ? partCalories(sr, opt.pick) : null;
+    const c = sr ? partCalories(sr, opt.pick, bitChoice(r, sec, pickedBits(sr, opt.pick).length)) : null;
     if (!c) { missing++; continue; }
     total += c.value * slotRatio(r, sec, ratios); estimated ||= c.estimated;
   }
@@ -1084,7 +1111,7 @@ function renderRecipe() {
         h("button", { type: "button", "aria-label": "More servings", onclick: () => { ui.serves++; render(); } }, "+"))));
     for (const s of subs) {
       const n = Math.round(slotRatio(r, s.sec, ui.ratios) * ui.serves * 10) / 10;
-      app.append(subRecipeBox(s.sec, s.opt, factor, n, (next) => { ui.ratios = { ...ui.ratios, [s.sec.id]: next / ui.serves }; render(); }));
+      app.append(subRecipeBox(s.sec, s.opt, factor, n, (next) => { ui.ratios = { ...ui.ratios, [s.sec.id]: next / ui.serves }; render(); }, r));
     }
     if (notesCard) app.append(notesCard);
     if (cardPhoto) app.append(cardPhoto);
@@ -1181,14 +1208,24 @@ function stepList(steps, keyBase) {
 
 // A sauce or extra (or one recipe of a combined meal): its own recipe from the book, in its own box.
 // serveTo is set for meals: the recipe is scaled to serve that many, and onServes changes it.
-function subRecipeBox(sec, opt, factor, serveTo, onServes) {
+function subRecipeBox(sec, opt, factor, serveTo, onServes, meal) {
   const sr = findRecipe(opt.recipeId);
   const box = h("section", { class: "sub-recipe", id: "sub-" + sec.id });
   if (!sr) {
     box.append(h("p", { style: "margin:0;color:var(--muted)" }, `The ${sec.name || "extra"} recipe that was here has been deleted. Edit this recipe to choose another.`));
     return box;
   }
-  const bits = pickedBits(sr, opt.pick);
+  const allBits = pickedBits(sr, opt.pick);
+  // Several bits ticked in a meal: show them as choices and only the picked one below.
+  const sel = meal && allBits.length > 1 ? bitChoice(meal, sec, allBits.length) : null;
+  const bits = sel != null ? [allBits[sel]] : allBits;
+  const sameSec = allBits.every(b => b.sec === allBits[0].sec);
+  const bitPicker = sel == null ? null : h("div", { class: "chips", role: "group", "aria-label": "Which one" }, allBits.map((b, i) =>
+    h("button", { class: "chip", type: "button", "aria-pressed": String(i === sel), onclick: () => {
+      ui.choice = { ...ui.choice, [sec.id + "~bit"]: i };
+      store.set("choice:" + meal.id, JSON.stringify(ui.choice));
+      render();
+    } }, sameSec ? (b.opt.name || "Original") : partTitle(b.sec, b.opt))));
   let f, note;
   if (serveTo) {
     f = sr.serves ? serveTo / sr.serves : 1;
@@ -1206,6 +1243,7 @@ function subRecipeBox(sec, opt, factor, serveTo, onServes) {
     h("div", {},
       h("span", { class: "eyebrow" }, [sec.name || (serveTo ? "" : "Also on this page"), sec.first ? "Make this first" : ""].filter(Boolean).join(" · ")),
       h("h3", {}, bits.length ? bitTitle(sr, bits) : sr.title),
+      bitPicker,
       h("p", { class: "uses-note" }, note),
       onServes ? h("div", { class: "stepper", "aria-label": `Servings of ${sr.title}` },
         h("button", { type: "button", "aria-label": "Fewer servings", onclick: () => onServes(Math.max(.5, serveTo > 1 ? serveTo - 1 : serveTo / 2)) }, "−"),
@@ -1668,11 +1706,48 @@ async function loadSongs() {
 function renderTunes() {
   const el = document.getElementById("tunes");
   if (editingSongs) return renderSongEditor(el);
+  // Spotify songs and playlists play in the player at the bottom; everything else opens in a new tab.
   el.replaceChildren(h("b", {}, "Something to cook to:"),
-    ...songs.map(s => h("a", { href: s.url, target: "_blank", rel: "noopener" }, s.title,
-      KIND_LABEL[s.kind] ? h("span", { class: "tune-kind" }, " · " + KIND_LABEL[s.kind]) : null)),
+    ...songs.map(s => spotifyEmbed(s.url)
+      ? h("button", { class: "tune-play", type: "button", "aria-pressed": String(playing === s.url), onclick: () => play(s) },
+          icon("i-play"), s.title, KIND_LABEL[s.kind] ? h("span", { class: "tune-kind" }, " · " + KIND_LABEL[s.kind]) : null)
+      : h("a", { href: s.url, target: "_blank", rel: "noopener" }, s.title,
+          KIND_LABEL[s.kind] ? h("span", { class: "tune-kind" }, " · " + KIND_LABEL[s.kind]) : null)),
     key ? h("button", { class: "btn small ghost", type: "button", onclick: () => { editingSongs = songs.map(s => ({ ...s })); renderTunes(); } }, "Edit") : null);
 }
+/* --- the Spotify player docked at the bottom of the page --- */
+// The site never reloads between pages, so the music keeps going while she moves between recipes.
+let playing = null;
+function spotifyEmbed(url) {
+  const m = String(url || "").match(/^https:\/\/open\.spotify\.com\/(?:intl-[a-z-]+\/)?(track|playlist|album|artist|episode|show)\/([A-Za-z0-9]+)/);
+  return m ? { kind: m[1], src: `https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator` } : null;
+}
+function play(song) {
+  const e = spotifyEmbed(song.url);
+  if (!e) return;
+  let bar = document.getElementById("player");
+  if (!bar) {
+    bar = h("div", { id: "player", class: "player", role: "region", "aria-label": "Music player" });
+    document.body.append(bar);
+  }
+  playing = song.url;
+  // A single song fits the slim player; playlists and albums get room for their track list.
+  const tall = e.kind !== "track" && e.kind !== "episode";
+  bar.replaceChildren(
+    h("iframe", { src: e.src, title: "Spotify player: " + song.title, height: tall ? "152" : "80",
+      allow: "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" }),
+    h("button", { class: "player-close", type: "button", "aria-label": "Close the music player", onclick: stop }, "×"));
+  document.body.classList.toggle("player-tall", tall);
+  document.body.classList.add("has-player");
+  renderTunes();
+}
+function stop() {
+  document.getElementById("player")?.remove();
+  document.body.classList.remove("has-player", "player-tall");
+  playing = null;
+  renderTunes();
+}
+
 function renderSongEditor(el) {
   const list = h("ul", { class: "song-list" }, editingSongs.map((s, i) => {
     const name = h("input", { id: `song-${i}`, value: s.title, "aria-label": "Name shown" });
