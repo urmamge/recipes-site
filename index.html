@@ -347,6 +347,78 @@ a.btn { color: inherit; text-decoration: none; }
 .song-editor .msg { margin-right: auto; font-size: 14px; color: var(--muted); }
 .song-editor .msg.err { color: var(--danger); }
 
+/* Footer under the recipes */
+.foot { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); text-align: center; }
+.foot-link { background: none; border: 0; padding: 4px 2px; font: inherit; font-size: 14px; color: var(--leaf); cursor: pointer; border-bottom: 1px solid var(--leaf-soft); }
+.foot-link:hover { border-bottom-color: var(--leaf); }
+
+/* The birthday card: a folded card over the whole page. The cover swings open like a real card,
+   sideways on wide screens and upwards (like a tent card) on phones, where two pages side by side won't fit. */
+html.bday-on { overflow: hidden; }
+.bday {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; overflow: hidden;
+  background: radial-gradient(circle at 50% 40%, var(--surface), var(--bg) 70%);
+  transition: opacity .6s ease;
+}
+.bday.leaving { opacity: 0; }
+.bday-stage { perspective: 2000px; opacity: 0; transform: translateY(24px) scale(.94); transition: opacity .7s ease, transform .9s cubic-bezier(.2,.8,.2,1); }
+.bday.show .bday-stage { opacity: 1; transform: none; }
+.bday-card {
+  --pw: min(330px, 44vw, 58vh); --ph: calc(var(--pw) * 1.4);
+  position: relative; width: calc(var(--pw) * 2); height: var(--ph);
+  transform: translateX(-25%); transition: transform 1s cubic-bezier(.4,.1,.2,1); transform-style: preserve-3d;
+}
+.bday-card.open { transform: none; }
+.bday-page, .bday-cover { position: absolute; left: 50%; top: 0; width: 50%; height: 100%; }
+.bday-page, .bday-face { border-radius: 3px 10px 10px 3px; box-shadow: var(--shadow); }
+.bday-page { background: var(--paper); }
+.bday-cover { transform-origin: left center; transform-style: preserve-3d; transition: transform 1.2s cubic-bezier(.4,.1,.2,1); cursor: pointer; }
+.open .bday-cover { transform: rotateY(-180deg); cursor: default; }
+.bday-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; }
+.bday-face.bday-back { transform: rotateY(180deg); background: var(--paper); border-radius: 10px 3px 3px 10px; }
+.bday-in { display: flex; flex-direction: column; height: 100%; padding: 10% 9%; overflow-y: auto; }
+
+.bday-face.bday-front { background: var(--leaf); color: var(--leaf-ink); }
+.bday-face.bday-front .bday-in { align-items: center; justify-content: space-between; text-align: center; }
+.bday-kicker { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; opacity: .85; margin: 0; }
+.bday-face.bday-front svg { width: 26%; height: auto; aspect-ratio: 60 / 100; opacity: .9; }
+.bday-joke { font-family: var(--f-display); font-size: clamp(19px, calc(var(--pw) * .075), 26px); line-height: 1.25; margin: 0; text-wrap: balance; }
+.bday-punch { font-family: var(--f-hand); font-size: clamp(22px, calc(var(--pw) * .085), 30px); line-height: 1.1; margin: 6px 0 0; }
+.bday-hint { font-size: 13px; opacity: .8; margin: 0; animation: bday-nudge 2.4s ease-in-out infinite; }
+@keyframes bday-nudge { 0%, 100% { transform: none; } 50% { transform: translateY(-3px); } }
+
+.bday-hand { font-family: var(--f-hand); color: var(--pencil); font-size: clamp(20px, calc(var(--pw) * .074), 27px); line-height: 1.25; margin: 0; }
+.bday-face.bday-back .bday-in { gap: .7em; }
+.bday-face.bday-back .bday-sign { margin-top: auto; text-align: right; }
+.bday-page .bday-in { justify-content: safe center; gap: 12px; }
+.bday-page .bday-kicker { color: var(--leaf); opacity: 1; }
+.bday-page h2 { font-size: clamp(21px, calc(var(--pw) * .08), 28px); line-height: 1.2; }
+.bday-page p { margin: 0; color: var(--muted); font-size: clamp(14px, calc(var(--pw) * .048), 16px); }
+.bday-page .btn { align-self: flex-start; margin-top: 6px; }
+
+.bday-confetti { position: fixed; inset: 0; pointer-events: none; }
+.bday-confetti i {
+  position: absolute; top: -24px; left: var(--x); width: 9px; height: 15px; background: var(--c);
+  border-radius: 0 100% 0 100%; opacity: 0; animation: bday-fall var(--d) var(--w) ease-in forwards;
+}
+.bday-confetti i:nth-child(3n) { border-radius: 2px; width: 8px; height: 8px; }
+@keyframes bday-fall { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 100% { opacity: .9; transform: translate(var(--s), 110vh) rotate(var(--r)); } }
+
+@media (max-width: 640px) {
+  .bday-card { --pw: min(88vw, 400px); --ph: min(calc(var(--pw) * .95), 44vh); width: var(--pw); height: calc(var(--ph) * 2); transform: translateY(-25%); }
+  .bday-card.open { transform: none; }
+  .bday-page, .bday-cover { left: 0; top: 50%; width: 100%; height: 50%; }
+  .bday-page, .bday-face { border-radius: 3px 3px 10px 10px; }
+  .bday-cover { transform-origin: center top; }
+  .open .bday-cover { transform: rotateX(180deg); }
+  .bday-face.bday-back { transform: rotateX(180deg); border-radius: 10px 10px 3px 3px; }
+  .bday-in { padding: 6% 7%; }
+  .bday-page .bday-in { gap: 8px; }
+  .bday-page h2 { font-size: 21px; }
+  .bday-page p { font-size: 14px; line-height: 1.45; }
+  .bday-face.bday-front svg { width: 13%; }
+}
+
 @media (max-width: 760px) {
   .recipe-head, .recipe-body { grid-template-columns: minmax(0, 1fr); gap: 22px; }
   .ingredients { position: static; }
@@ -405,9 +477,46 @@ a.btn { color: inherit; text-decoration: none; }
   </header>
   <div class="notice" id="notice" hidden></div>
   <main id="app"></main>
+  <footer class="foot" id="foot" hidden><button class="foot-link" id="replayCard" type="button">Replay your birthday card</button></footer>
 </div>
 </div>
 <div class="dock" id="dock" hidden><div id="player-slot"></div><div class="tunes" id="tunes"></div></div>
+
+<div class="bday" id="bday" role="dialog" aria-modal="true" aria-label="Birthday card" hidden>
+  <div class="bday-stage">
+    <div class="bday-card" id="bdayCard">
+      <div class="bday-page">
+        <div class="bday-in">
+          <p class="bday-kicker">Your present</p>
+          <h2>A recipe book that can't get lost</h2>
+          <p>Every recipe in one place, on your phone and your computer. Add them from a website, by pasting the text, or with a photo of the recipe card. There's even music to cook to.</p>
+          <button class="btn primary" id="bdayGo" type="button">Open your recipe book →</button>
+        </div>
+      </div>
+      <div class="bday-cover" id="bdayCover" role="button" tabindex="0" aria-label="Open the card">
+        <div class="bday-face bday-front">
+          <div class="bday-in">
+            <p class="bday-kicker">Happy Birthday, Mum</p>
+            <svg aria-hidden="true"><use href="#sprig"/></svg>
+            <div>
+              <p class="bday-joke">I know how much you love a good recipe…</p>
+              <p class="bday-punch">…almost as much as you love losing them.</p>
+            </div>
+            <p class="bday-hint">Open me</p>
+          </div>
+        </div>
+        <div class="bday-face bday-back">
+          <div class="bday-in">
+            <p class="bday-hand">To Mum,</p>
+            <p class="bday-hand">Happy birthday! Thank you for every dinner, every packed lunch and every cake. I hope today is as lovely as you are.</p>
+            <p class="bday-hand bday-sign">Love, Matthew x</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="bday-confetti" id="bdayConfetti" aria-hidden="true"></div>
+</div>
 
 <script>
 const CATS = ["Breakfast", "Lunch", "Dinner", "Soups", "Sides", "Baking", "Desserts", "Drinks", "Sauces & extras", "Other"];
@@ -427,6 +536,19 @@ const store = {
 };
 let key = store.get("kitchenKey");
 function setKey(k) { key = k; store.set("kitchenKey", k); }
+
+// The birthday link (/?birthday=<kitchen code>) logs her straight in and plays the card the first time.
+// The address is tidied straight away, so a bookmark or a later visit is just the book.
+const linkParams = new URLSearchParams(location.search);
+const fromBirthdayLink = linkParams.has("birthday");
+if (fromBirthdayLink) {
+  if (linkParams.get("birthday")) setKey(linkParams.get("birthday"));
+  linkParams.delete("birthday");
+  const rest = linkParams.toString();
+  history.replaceState(history.state, "", location.pathname + (rest ? "?" + rest : "") + location.hash);
+  // Cover the book while we check whether the card's been seen, so it doesn't flash up first.
+  if (key) document.getElementById("bday").hidden = false;
+}
 
 /* ---------- talking to the server ---------- */
 // On recipes.matthewhearst.com (GitHub Pages) the data lives on the Worker; on the Worker itself it's same-origin.
@@ -1748,6 +1870,7 @@ if ("ResizeObserver" in window) new ResizeObserver(fitDock).observe(dock);
 function renderTunes() {
   const el = document.getElementById("tunes");
   dock.hidden = !key;
+  document.getElementById("foot").hidden = !key;
   if (editingSongs) return renderSongEditor(el);
   // Spotify songs and playlists play in the bar; everything else opens in a new tab.
   el.replaceChildren(
@@ -2114,6 +2237,54 @@ function renderSongEditor(el) {
 
 addBtn.onclick = () => nav("#add");
 
+/* ---------- birthday card ---------- */
+const bday = document.getElementById("bday");
+const bdayCard = document.getElementById("bdayCard");
+const bdayCover = document.getElementById("bdayCover");
+let bdayMarks = false;     // shown from the birthday link, so closing it marks it seen for every device
+function showCard(marks) {
+  bdayMarks = marks;
+  bdayCard.classList.remove("open");
+  bday.classList.remove("leaving", "show");
+  bday.hidden = false;
+  document.documentElement.classList.add("bday-on");
+  bday.offsetWidth;        // let the card start from its entrance position
+  bday.classList.add("show");
+  // A replay starts from a click, so move focus into the card; the first showing has no click to follow.
+  if (!marks) bdayCover.focus({ preventScroll: true });
+}
+function openCard() {
+  if (bdayCard.classList.contains("open")) return;
+  bdayCard.classList.add("open");
+  confetti();
+  setTimeout(() => document.getElementById("bdayGo").focus({ preventScroll: true }), 1200);
+}
+function closeCard() {
+  if (bdayMarks) {
+    bdayMarks = false;
+    api("/api/settings/card", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ seen: true }) }).catch(() => {});
+  }
+  bday.classList.add("leaving");
+  setTimeout(() => {
+    bday.hidden = true;
+    bday.classList.remove("leaving", "show");
+    bdayCard.classList.remove("open");
+    document.getElementById("bdayConfetti").replaceChildren();
+    document.documentElement.classList.remove("bday-on");
+  }, 600);
+}
+function confetti() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const colours = ["--leaf", "--bloom", "--pencil", "--leaf-deep"];
+  document.getElementById("bdayConfetti").replaceChildren(...Array.from({ length: 48 }, (_, i) => h("i", {
+    style: `--x:${(Math.random() * 100).toFixed(1)}vw;--s:${Math.round(Math.random() * 120 - 60)}px;--d:${(2.6 + Math.random() * 2.2).toFixed(2)}s;--w:${(Math.random() * .9).toFixed(2)}s;--r:${Math.round(Math.random() * 720 - 360)}deg;--c:var(${colours[i % 4]})`,
+  })));
+}
+bdayCover.onclick = openCard;
+bdayCover.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openCard(); } };
+document.getElementById("bdayGo").onclick = closeCard;
+document.getElementById("replayCard").onclick = () => showCard(false);
+
 /* ---------- start up ---------- */
 try { recipes = key ? JSON.parse(store.get("recipesCache") || "[]") : []; } catch { recipes = []; }
 route();
@@ -2121,6 +2292,9 @@ loadRecipes();
 renderTunes();
 const songsLoaded = key ? loadSongs() : Promise.resolve();
 songsLoaded.then(finishSpotifyLogin);
+if (fromBirthdayLink && key) {
+  api("/api/settings/card").then(({ card }) => card?.seen ? closeCard() : showCard(true)).catch(() => closeCard());
+}
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && (ui.view === "list" || ui.view === "recipe")) loadRecipes(); });
 </script>
 </body>
