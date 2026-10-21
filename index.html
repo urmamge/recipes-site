@@ -265,6 +265,12 @@ a.btn { color: inherit; text-decoration: none; }
 .sub-recipe .recipe-body { padding-top: 0; }
 .sub-recipe .ingredients { position: static; background: var(--bg); }
 .uses-note { margin: 0; color: var(--muted); font-size: 14px; }
+.sub-head .stepper { align-self: flex-start; margin-top: 4px; }
+.time-menu h3 { font-size: 20px; }
+.time-menu ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.time-menu li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 15px; }
+.time-menu li strong { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.time-menu .hint { margin: 0; color: var(--muted); font-size: 14px; }
 .meal-serves { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 22px; font-weight: 600; font-size: 15px; }
 
 /* Form: parts, variations and extras */
@@ -467,6 +473,8 @@ function splitIngredient(line, factor) {
 const FOODS = [
   // next to nothing
   ["salt|black pepper|white pepper|ground pepper|pepper to taste|peppercorn|pepper flakes|chilli flakes|chili flakes|paprika|cumin|cinnamon|nutmeg|oregano|basil|thyme|rosemary|parsley|coriander|mixed herbs|mixed spice|bay lea|vanilla|turmeric|garam masala|curry powder|ground ginger|garlic powder|onion powder|cayenne|cloves? \\(spice\\)|allspice|dill|mint|chives|sage|baking powder|bicarbonate|baking soda|yeast|gelatine|water|ice|zest|zested", 0],
+  // A few sprays of oil are a handful of calories: count as nothing, before "oil" matches.
+  ["cooking spray|oil spray|spray oil|frylight|fry light|spray of oil|sprays? of", 0],
   ["lemon juice|lime juice|juice of|juiced|squeeze of", 22, 30],
   ["stock cube|bouillon|stock pot|oxo", 250, 10],
   ["stock|broth", 5],
@@ -733,34 +741,64 @@ function pickedBit(r, pick) {
   return opt ? { sec, opt } : null;
 }
 // A meal's calories per serving: each recipe's own per-serving figure, added up.
-function mealCalories(r, choice) {
-  let total = 0, estimated = false;
-  for (const { opt } of chosen(r, choice)) {
+// Calories per serving of one recipe in a meal, or of just the bit of it the meal takes.
+function partCalories(sr, pick) {
+  const bit = pickedBit(sr, pick);
+  if (!bit) return calorieInfo(sr);
+  const t = linesTotals(bit.opt.ingredients || []);
+  const counted = t.n && t.kcal && !(t.unknown > t.n / 3);
+  const onlyPart = sectionsOf(sr).filter(s => s.kind !== "sub").length === 1;
+  // One version of a whole dish: the recipe's own figure applies. One part of several:
+  // split the recipe's own figure by that part's share of the estimate.
+  const whole = dishTotals(sr, { ...choiceFor(sr), [bit.sec.id]: bit.sec.options.indexOf(bit.opt) });
+  return sr.calories && onlyPart ? { value: sr.calories, estimated: false }
+    : sr.calories && counted && whole.kcal ? { value: sr.calories * t.kcal / whole.kcal, estimated: true }
+    : counted ? { value: t.kcal / (sr.serves || 1), estimated: true } : null;
+}
+// How many servings of a recipe go into one serving of the meal (2 = two portions of chicken each).
+function slotRatio(r, sec, ratios) {
+  return ratios?.[sec.id] ?? (sec.serves ? sec.serves / (r.serves || 1) : 1);
+}
+// A meal's calories per serving: each recipe's per-serving figure, times how many servings of it
+// go into one serving of the meal, added up. Recipes with no figure are left out and the total is marked ≈.
+function mealCalories(r, choice, ratios) {
+  let total = 0, estimated = false, missing = 0;
+  for (const { sec, opt } of chosen(r, choice)) {
     const sr = findRecipe(opt.recipeId);
-    if (!sr) return null;
-    const bit = pickedBit(sr, opt.pick);
-    let c;
-    if (bit) {
-      const t = linesTotals(bit.opt.ingredients || []);
-      const counted = t.n && t.kcal && !(t.unknown > t.n / 3);
-      const onlyPart = sectionsOf(sr).filter(s => s.kind !== "sub").length === 1;
-      // One version of a whole dish: the recipe's own figure applies. One part of several:
-      // split the recipe's own figure by that part's share of the estimate.
-      const whole = dishTotals(sr, { ...choiceFor(sr), [bit.sec.id]: bit.sec.options.indexOf(bit.opt) });
-      c = sr.calories && onlyPart ? { value: sr.calories, estimated: false }
-        : sr.calories && counted && whole.kcal ? { value: sr.calories * t.kcal / whole.kcal, estimated: true }
-        : counted ? { value: t.kcal / (sr.serves || 1), estimated: true } : null;
-    } else c = calorieInfo(sr);
-    if (!c) return null;
-    total += c.value; estimated ||= c.estimated;
+    const c = sr ? partCalories(sr, opt.pick) : null;
+    if (!c) { missing++; continue; }
+    total += c.value * slotRatio(r, sec, ratios); estimated ||= c.estimated;
   }
   const value = Math.round(total / 10) * 10;
-  return value ? { value, estimated } : null;
+  return value ? { value, estimated: estimated || missing > 0, missing } : null;
+}
+
+/* ---------- times ("40 min", "1 hr 10 min") ---------- */
+function minutesOf(t) {
+  const s = String(t || "").toLowerCase();
+  const hr = +(s.match(/(\d+(?:\.\d+)?)\s*(h|hr|hrs|hour|hours)\b/)?.[1] || 0);
+  const min = +(s.match(/(\d+)\s*(m|min|mins|minute|minutes)\b/)?.[1] || 0);
+  if (hr || min) return Math.round(hr * 60 + min);
+  const bare = s.match(/^\s*(\d+)\s*$/);
+  return bare ? +bare[1] : null;
+}
+// A time typed as just a number ("40") reads as minutes.
+const showTime = (t) => /^\s*\d+\s*$/.test(t || "") ? `${t.trim()} min` : t;
+function fmtMinutes(m) {
+  const h = Math.floor(m / 60), r = m % 60;
+  return [h ? `${h} hr` : "", r ? `${r} min` : ""].filter(Boolean).join(" ") || "0 min";
+}
+// For a meal with no time of its own: from the longest recipe (all at once) to all of them one after another.
+function mealTimes(r, choice) {
+  const mins = chosen(r, choice).map(({ opt }) => minutesOf(findRecipe(opt.recipeId)?.time)).filter(m => m != null);
+  if (!mins.length) return null;
+  return { longest: Math.max(...mins), total: mins.reduce((a, b) => a + b, 0) };
 }
 
 function calorieInfo(r, choice) {
   if (r.calories) return { value: r.calories, estimated: false };
-  if (r.combo) return mealCalories(r, choice || choiceFor(r));
+  // On the meal's own page, use the servings picked there; elsewhere the saved ones.
+  if (r.combo) return mealCalories(r, choice || choiceFor(r), ui.view === "recipe" && ui.openId === r.id ? ui.ratios : null);
   const t = dishTotals(r, choice || choiceFor(r));
   // Only estimate when most of the list could be counted.
   if (!t.n || !t.kcal || t.unknown > t.n / 3) return null;
@@ -831,7 +869,7 @@ function route() {
   if (!key) { ui.after = location.hash; ui.view = "unlock"; render(); window.scrollTo(0, 0); return; }
   if (view === "recipe" && ui.openId !== id) {
     const r = recipes.find(x => x.id === id);
-    ui = { ...ui, openId: id, serves: r?.serves || null, choice: null, done: new Set(), ticked: new Set() };
+    ui = { ...ui, openId: id, serves: r?.serves || (r?.combo ? 1 : null), choice: null, ratios: null, done: new Set(), ticked: new Set() };
   }
   ui.view = view;
   ui.editId = view === "edit" ? id : null;
@@ -871,10 +909,14 @@ function metaRow(r, scaledServes, long, choice) {
   const cal = calorieInfo(r, choice);
   const per = r.serves || r.combo ? " per serving" : " in total";
   const ways = waysCount(r);
+  const mt = !r.time && r.combo ? mealTimes(r, choice) : null;
+  const time = showTime(r.time) || (mt ? (mt.longest === mt.total ? fmtMinutes(mt.longest) : `${fmtMinutes(mt.longest)} to ${fmtMinutes(mt.total)}`) : "");
+  const calNote = cal?.missing ? `, not counting ${cal.missing} recipe${cal.missing === 1 ? "" : "s"} with no calorie figure`
+    : cal?.estimated ? (r.combo ? ", added up from the recipes" : ", worked out from the ingredients") : "";
   return h("div", { class: "meta" },
-    r.time ? h("span", {}, icon("i-clock"), r.time) : null,
+    time ? h("span", { title: mt ? "From the longest recipe to all of them one after another" : null }, icon("i-clock"), time) : null,
     r.serves ? h("span", {}, icon("i-people"), "Serves " + (scaledServes || r.serves)) : null,
-    cal ? h("span", { title: (cal.estimated ? "About " : "") + cal.value + " kcal" + per + (cal.estimated ? ", worked out from the ingredients" : "") },
+    cal ? h("span", { title: (cal.estimated ? "About " : "") + cal.value + " kcal" + per + calNote },
       icon("i-flame"), (cal.estimated ? "≈ " : "") + cal.value.toLocaleString("en-GB") + " kcal" + (long ? per : "")) : null,
     !long && ways > 1 ? h("span", {}, icon("i-ways"), ways + " ways") : null);
 }
@@ -1017,13 +1059,19 @@ function renderRecipe() {
   const hasText = parts.some(p => (p.opt.ingredients || []).length || (p.opt.steps || []).length) || subs.length;
 
   // A combined meal: each recipe in its own box, scaled to the meal's servings.
+  // Each recipe keeps its own servings per serving of the meal (two portions of chicken, one of chips),
+  // so changing "Making it for" scales them all together.
   if (r.combo) {
-    if (r.serves) app.append(h("div", { class: "meal-serves" }, h("span", {}, "Making it for"),
+    if (!ui.serves) ui.serves = r.serves || 1;
+    app.append(h("div", { class: "meal-serves" }, h("span", {}, "Making it for"),
       h("div", { class: "stepper", "aria-label": "Change servings" },
         h("button", { type: "button", "aria-label": "Fewer servings", onclick: () => { if (ui.serves > 1) { ui.serves--; render(); } } }, "−"),
-        h("output", {}, `Serves ${ui.serves}`),
+        h("output", {}, `${ui.serves} ${ui.serves === 1 ? "person" : "people"}`),
         h("button", { type: "button", "aria-label": "More servings", onclick: () => { ui.serves++; render(); } }, "+"))));
-    for (const s of subs) app.append(subRecipeBox(s.sec, s.opt, factor, ui.serves || r.serves || null));
+    for (const s of subs) {
+      const n = Math.round(slotRatio(r, s.sec, ui.ratios) * ui.serves * 10) / 10;
+      app.append(subRecipeBox(s.sec, s.opt, factor, n, (next) => { ui.ratios = { ...ui.ratios, [s.sec.id]: next / ui.serves }; render(); }));
+    }
     if (notesCard) app.append(notesCard);
     if (cardPhoto) app.append(cardPhoto);
     return;
@@ -1118,8 +1166,8 @@ function stepList(steps, keyBase) {
 }
 
 // A sauce or extra (or one recipe of a combined meal): its own recipe from the book, in its own box.
-// serveTo is set for meals: the recipe is scaled to serve that many.
-function subRecipeBox(sec, opt, factor, serveTo) {
+// serveTo is set for meals: the recipe is scaled to serve that many, and onServes changes it.
+function subRecipeBox(sec, opt, factor, serveTo, onServes) {
   const sr = findRecipe(opt.recipeId);
   const box = h("section", { class: "sub-recipe", id: "sub-" + sec.id });
   if (!sr) {
@@ -1130,7 +1178,9 @@ function subRecipeBox(sec, opt, factor, serveTo) {
   let f, note;
   if (serveTo) {
     f = sr.serves ? serveTo / sr.serves : 1;
-    note = !sr.serves ? "" : f === 1 ? `Serves ${serveTo}.` : `Amounts changed to serve ${serveTo} instead of ${sr.serves}.`;
+    note = [sr.time ? `Takes ${showTime(sr.time)}.` : "",
+      !sr.serves ? "This recipe doesn't say how many it serves, so its amounts aren't changed."
+        : f === 1 ? "" : `Amounts changed to serve ${serveTo} instead of ${sr.serves}.`].filter(Boolean).join(" ");
   } else {
     const share = usesFraction(opt.uses, dishTotals(sr, choiceFor(sr), 1));
     // Scale the batch with the servings only when the dish uses all of it.
@@ -1142,7 +1192,11 @@ function subRecipeBox(sec, opt, factor, serveTo) {
     h("div", {},
       h("span", { class: "eyebrow" }, [sec.name || (serveTo ? "" : "Also on this page"), sec.first ? "Make this first" : ""].filter(Boolean).join(" · ")),
       h("h3", {}, bit ? bitTitle(sr, bit) : sr.title),
-      h("p", { class: "uses-note" }, note)),
+      h("p", { class: "uses-note" }, note),
+      onServes ? h("div", { class: "stepper", "aria-label": `Servings of ${sr.title}` },
+        h("button", { type: "button", "aria-label": "Fewer servings", onclick: () => onServes(Math.max(.5, serveTo > 1 ? serveTo - 1 : serveTo / 2)) }, "−"),
+        h("output", {}, `Serves ${serveTo}`),
+        h("button", { type: "button", "aria-label": "More servings", onclick: () => onServes(serveTo < 1 ? serveTo * 2 : serveTo + 1) }, "+")) : null),
     h("a", { class: "btn", href: "#r-" + sr.id }, "Open on its own")));
   const ing = h("aside", { class: "ingredients" }, h("div", { class: "panel-title" }, h("h3", {}, "Ingredients")));
   const method = h("section", {}, h("div", { class: "panel-title" }, h("h3", {}, "Method")));
@@ -1274,7 +1328,7 @@ function toEditable(r) {
   const joined = (v) => Array.isArray(v) ? v.join("\n") : (v || "");
   // Imported recipes can arrive with a sauce or spice mix to create ("recipeId: new").
   return sectionsOf(r).map(s => ({
-    id: keep(s.id, "main"), kind: s.kind === "sub" ? "sub" : "part", name: s.name || "", first: !!s.first, active: 0,
+    id: keep(s.id, "main"), kind: s.kind === "sub" ? "sub" : "part", name: s.name || "", first: !!s.first, serves: s.serves || "", active: 0,
     options: s.options.map(o => s.kind === "sub"
       ? { id: keep(o.id), recipeId: o.recipeId || "", pick: o.pick || "", uses: o.uses || "", newTitle: o.newTitle || "", newIng: joined(o.newIngredients || o.newIng), newSteps: joined(o.newSteps) }
       : { id: keep(o.id, "o"), name: o.name || "", ing: joined(o.ingredients), steps: joined(o.steps) }),
@@ -1442,13 +1496,42 @@ function renderForm() {
         if (s.options.length > 1) optBox.append(h("div", { class: "ed-actions" }, small("Remove this choice", () => { s.options.splice(i, 1); drawSections(); }, "danger")));
         box.append(optBox);
       });
+      const sv = h("input", { id: `sv-${s.id}`, type: "number", min: "0.5", step: "0.5", inputmode: "decimal", value: s.serves || "", placeholder: "Same as the meal" });
+      sv.oninput = () => s.serves = sv.value;
+      box.append(f(`sv-${s.id}`, "Servings of this", sv, "e.g. 2 if everyone has two portions of the chicken"));
       box.append(h("div", { class: "ed-actions" },
         small("+ Or another recipe instead", () => { s.options.push({ id: uid(), recipeId: "", pick: "", uses: "", newTitle: "", newIng: "", newSteps: "" }); drawSections(); }),
         ed.length > 1 ? small("Remove", () => { ed.splice(si, 1); drawSections(); }, "danger") : null));
       out.push(box);
     });
     out.push(h("div", { class: "ed-actions" }, small("+ Add a recipe to this meal", () => { ed.push(newSub()); drawSections(); })));
+    out.push(timeMenu());
     sectionsBox.replaceChildren(...out);
+  }
+  // How long the meal takes: each recipe's own time, the longest and the all-added-up total,
+  // and her own estimate (things like chips and chicken can cook at the same time).
+  function timeMenu() {
+    const rows = [];
+    let longest = 0, total = 0, known = 0;
+    ed.forEach(s => s.options.forEach((o, i) => {
+      const sr = findRecipe(o.recipeId);
+      if (!sr) return;
+      const m = minutesOf(sr.time);
+      rows.push(h("li", {}, h("span", {}, (i ? "or " : "") + sr.title), h("strong", {}, m != null ? fmtMinutes(m) : "no time given")));
+      if (i === 0 && m != null) { longest = Math.max(longest, m); total += m; known++; }
+    }));
+    const box = h("div", { class: "ed-sec time-menu" }, h("h3", {}, "Time"));
+    if (rows.length) box.append(h("ul", {}, rows));
+    if (known) {
+      box.append(h("p", { class: "hint" }, known > 1
+        ? `The longest recipe takes ${fmtMinutes(longest)}, and all of them one after another take ${fmtMinutes(total)}. If some can cook at the same time, the meal takes somewhere in between.`
+        : `This recipe takes ${fmtMinutes(longest)}.`));
+      box.append(h("div", { class: "ed-actions" },
+        small(`Use ${fmtMinutes(longest)}`, () => { time.value = fmtMinutes(longest); }),
+        known > 1 && total !== longest ? small(`Use ${fmtMinutes(total)}`, () => { time.value = fmtMinutes(total); }) : null));
+    } else box.append(h("p", { class: "hint" }, "Pick recipes above to see how long each one takes."));
+    box.append(f("f-time", "Your estimate for the whole meal", time, "leave blank to show the range"));
+    return box;
   }
   function addVariation(s) {
     const from = s.options[s.active] || s.options[0];
@@ -1464,7 +1547,7 @@ function renderForm() {
   const box = h("div", { class: "box" },
     fromCard ? picField("cardPhoto") : null,
     f("f-title", combo ? "Meal name" : "Recipe name", title),
-    h("div", { class: "row" }, f("f-cat", "Type", cat), f("f-serves", "Serves", serves), f("f-time", "Time", time), f("f-cal", "Calories", calories)),
+    h("div", { class: "row" }, f("f-cat", "Type", cat), f("f-serves", combo ? "Making it for" : "Serves", serves), combo ? null : f("f-time", "Time", time), f("f-cal", "Calories", calories)),
     h("p", { style: "margin:-6px 0 0;color:var(--muted);font-size:13px" }, combo
       ? "Calories are per serving. Leave it blank and each recipe's calories are added up. Set Serves and every recipe is scaled to match."
       : "Calories are per serving. Leave it blank and they're worked out from the ingredients, shown with ≈."),
@@ -1497,7 +1580,8 @@ function renderForm() {
         o.recipeId = sub.id;
       }
       const sections = ed.map(s => s.kind === "sub"
-        ? { id: s.id, kind: "sub", name: s.name.trim(), first: s.first, options: s.options.filter(o => o.recipeId).map(o => ({ id: o.id, recipeId: o.recipeId, uses: o.uses.trim(), pick: o.pick || "" })) }
+        ? { id: s.id, kind: "sub", name: s.name.trim(), first: s.first, serves: combo && Number(s.serves) > 0 ? Number(s.serves) : null,
+            options: s.options.filter(o => o.recipeId).map(o => ({ id: o.id, recipeId: o.recipeId, uses: o.uses.trim(), pick: o.pick || "" })) }
         : { id: s.id, kind: "part", name: s.name.trim(), options: s.options.map((o, i) => ({ id: o.id, name: o.name.trim() || (s.options.length > 1 ? `Version ${i + 1}` : ""), ingredients: toLines(o.ing), steps: toLines(o.steps) })) })
         .filter(s => s.options.length);
       const firstPart = sections.find(s => s.kind === "part")?.options[0];
