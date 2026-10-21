@@ -4,15 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Recipe Book</title>
-<meta name="theme-color" content="#3B6C45">
+<meta name="theme-color" content="#3B6C45" id="themeColor">
 <!-- Added to an iPhone or Android home screen, it opens like an app: its own icon and name, no browser bars. -->
-<link rel="manifest" href="/manifest.webmanifest">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest" id="manifestLink">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" id="touchIcon">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Recipe Book">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 100'%3E%3Cpath d='M30 98 C29 72 31 44 30 6' fill='none' stroke='%233B6C45' stroke-width='4'/%3E%3Cpath d='M30 78 C17 76 8 66 9 54 C21 55 30 64 30 78Z M30 66 C43 64 52 54 51 42 C39 43 30 52 30 66Z M30 48 C19 46 12 37 13 27 C23 28 30 36 30 48Z M30 36 C40 34 47 26 46 17 C37 18 30 25 30 36Z' fill='%233B6C45'/%3E%3C/svg%3E">
+<link rel="icon" id="favicon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 100'%3E%3Cpath d='M30 98 C29 72 31 44 30 6' fill='none' stroke='%233B6C45' stroke-width='4'/%3E%3Cpath d='M30 78 C17 76 8 66 9 54 C21 55 30 64 30 78Z M30 66 C43 64 52 54 51 42 C39 43 30 52 30 66Z M30 48 C19 46 12 37 13 27 C23 28 30 36 30 48Z M30 36 C40 34 47 26 46 17 C37 18 30 25 30 36Z' fill='%233B6C45'/%3E%3C/svg%3E">
+<script>
+// Each book has its own look. The device remembers which book it opens, so apply its look before anything draws.
+try {
+  const b = JSON.parse(localStorage.getItem("bookInfo") || "null");
+  if (localStorage.getItem("kitchenKey") && b && b.theme === "minion") document.documentElement.dataset.bookTheme = "minion";
+} catch {}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600;700&family=Caveat:wght@500;600&display=swap">
@@ -67,6 +74,30 @@ img { max-width: 100%; }
   --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 22px rgba(0,0,0,.25);
   color-scheme: dark;
 }
+
+/* GemFerg's book: Minion yellow and denim blue instead of the garden greens. Same variable names, so nothing else changes. */
+:root[data-book-theme="minion"] {
+  --bg: #FFF8D9; --surface: #FFFDF3; --ink: #1E2433; --muted: #596072; --line: #EADFAE;
+  --leaf: #2F64A8; --leaf-ink: #FFFFFF; --leaf-soft: #DCE7F6; --leaf-deep: #1F477D; --bloom: #D49A00;
+  --paper: #FFFBEA; --paper-line: #EEDFAE; --pencil: #2F3A6B;
+  --shadow: 0 1px 2px rgba(30,36,51,.06), 0 6px 18px rgba(30,36,51,.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-book-theme="minion"]:not([data-theme="light"]) {
+    --bg: #14171F; --surface: #1B1F2A; --ink: #EDEFF5; --muted: #A3A9B8; --line: #2C3242;
+    --leaf: #FFD93B; --leaf-ink: #1A1A1A; --leaf-soft: #2A3550; --leaf-deep: #FFE27A; --bloom: #FFD93B;
+    --paper: #222633; --paper-line: #343A4C; --pencil: #C9D3FF;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 22px rgba(0,0,0,.25);
+  }
+}
+:root[data-book-theme="minion"][data-theme="dark"] {
+  --bg: #14171F; --surface: #1B1F2A; --ink: #EDEFF5; --muted: #A3A9B8; --line: #2C3242;
+  --leaf: #FFD93B; --leaf-ink: #1A1A1A; --leaf-soft: #2A3550; --leaf-deep: #FFE27A; --bloom: #FFD93B;
+  --paper: #222633; --paper-line: #343A4C; --pencil: #C9D3FF;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 22px rgba(0,0,0,.25);
+}
+/* "Shared" and "From …" labels on recipe cards */
+.share-tag { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--leaf); background: var(--leaf-soft); border-radius: 999px; padding: 2px 9px; align-self: flex-start; }
 
 * { box-sizing: border-box; }
 body {
@@ -144,6 +175,9 @@ a.btn { color: inherit; text-decoration: none; }
 .thumb .ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--leaf); }
 .thumb .ph svg { width: 34%; height: 80%; opacity: .5; }
 .thumb .ph span { position: absolute; font-family: var(--f-display); font-size: 54px; color: var(--leaf-deep); opacity: .85; }
+/* In GemFerg's book a recipe without a photo just shows Bob, in full colour. */
+:root[data-book-theme="minion"] .thumb .ph svg { opacity: 1; height: 62%; }
+:root[data-book-theme="minion"] .thumb .ph span { display: none; }
 .fav-badge { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; color: var(--bloom); box-shadow: var(--shadow); }
 .fav-badge svg { width: 16px; height: 16px; }
 .card-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
@@ -466,6 +500,28 @@ html.bday-on { overflow: hidden; }
   <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></symbol>
   <symbol id="i-ways" viewBox="0 0 24 24"><path d="M12 3l9 4.5-9 4.5-9-4.5z M3 12l9 4.5 9-4.5 M3 16.5l9 4.5 9-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
   <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3c.8 3.4 5.5 5.6 5.5 10.5a5.5 5.5 0 01-11 0c0-2.4 1.1-4 2.4-5.2.2 1.7 1 2.8 2.1 3.2-.1-3 .2-5.8 1-8.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="bob" viewBox="0 -1 64 92"><path d="M30 11 C29 6 27 3 24 1 M32 10 C32 5 33 2 35 0 M34 11 C36 7 39 5 42 4" fill="none" stroke="#2B2B2B" stroke-width="1.4" stroke-linecap="round"/>
+<rect x="6" y="10" width="52" height="80" rx="26" fill="#FFD93B"/>
+<path d="M6 64 H58 A26 26 0 0 1 6 64 Z" fill="#2F64A8"/>
+<rect x="16" y="56" width="32" height="12" rx="3" fill="#2F64A8"/>
+<path d="M17 59 L7 51 M47 59 L57 51" stroke="#2F64A8" stroke-width="4.5" stroke-linecap="round"/>
+<circle cx="19.5" cy="60" r="1.7" fill="#1B1B1B"/><circle cx="44.5" cy="60" r="1.7" fill="#1B1B1B"/>
+<rect x="25.5" y="61" width="13" height="9" rx="2.2" fill="none" stroke="#244F87" stroke-width="1.3"/>
+<circle cx="32" cy="65.5" r="2.3" fill="#1B1B1B"/>
+<rect x="6.5" y="30" width="51" height="6.5" fill="#2B2B2B"/>
+<circle cx="22.5" cy="33" r="10.5" fill="#C9D1D8" stroke="#7C8792" stroke-width="2.6"/>
+<circle cx="41.5" cy="33" r="10.5" fill="#C9D1D8" stroke="#7C8792" stroke-width="2.6"/>
+<circle cx="22.5" cy="33" r="7.4" fill="#FFFFFF"/>
+<circle cx="41.5" cy="33" r="7.4" fill="#FFFFFF"/>
+<circle cx="23.6" cy="33.6" r="3.8" fill="#5CA23C"/>
+<circle cx="40.4" cy="33.6" r="3.8" fill="#7B4A1E"/>
+<circle cx="23.6" cy="33.6" r="1.8" fill="#111111"/>
+<circle cx="40.4" cy="33.6" r="1.8" fill="#111111"/>
+<circle cx="24.8" cy="32.3" r="0.9" fill="#FFFFFF"/>
+<circle cx="41.6" cy="32.3" r="0.9" fill="#FFFFFF"/>
+<path d="M23 47 Q32 57 41 47 Q32 50.5 23 47 Z" fill="#4A2318"/>
+<rect x="29.6" y="48.6" width="4.8" height="3" rx="0.8" fill="#FFFFFF"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5.5" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="18.5" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.3 10.8l7.4-4M8.3 13.2l7.4 4" stroke="currentColor" stroke-width="2"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
 </svg>
 
@@ -546,6 +602,28 @@ function setBook(b) {
   document.title = title;
   document.getElementById("bookTitle").textContent = title;
   document.getElementById("replayCard").hidden = !book?.card;
+  applyTheme(book?.theme);
+}
+
+// Each book's look: colours (CSS, by data-book-theme), the picture by the title and on photo-less recipes,
+// and the icons. iPhones take the home-screen icon when "Add to Home Screen" is tapped, so swapping it here
+// gives each book its own icon.
+const GARDEN_ICON = document.getElementById("favicon").getAttribute("href");
+const THEMES = {
+  garden: { motif: "sprig", favicon: GARDEN_ICON, touch: "/apple-touch-icon.png", manifest: "/manifest.webmanifest", colour: "#3B6C45" },
+  minion: { motif: "bob", favicon: "/bob.svg", touch: "/apple-touch-icon-bob.png", manifest: "/manifest-bob.webmanifest", colour: "#2F64A8" },
+};
+const theme = () => THEMES[book?.theme] || THEMES.garden;
+const motif = () => theme().motif;
+function applyTheme(name) {
+  const t = THEMES[name] || THEMES.garden;
+  if (name === "minion") document.documentElement.dataset.bookTheme = name;
+  else delete document.documentElement.dataset.bookTheme;
+  document.getElementById("favicon").setAttribute("href", t.favicon);
+  document.getElementById("touchIcon").setAttribute("href", t.touch);
+  document.getElementById("manifestLink").setAttribute("href", t.manifest);
+  document.getElementById("themeColor").setAttribute("content", t.colour);
+  document.querySelector(".brand use").setAttribute("href", "#" + t.motif);
 }
 
 // The birthday link (/?birthday=<kitchen code>) logs her straight in and plays the card the first time.
@@ -852,7 +930,18 @@ function sectionsOf(r) {
   if (Array.isArray(r.sections) && r.sections.length) return r.sections;
   return [{ id: "main", kind: "part", name: "", options: [{ id: "o", name: "", ingredients: r.ingredients || [], steps: r.steps || [] }] }];
 }
-const findRecipe = (id) => recipes.find(x => x.id === id);
+// Recipes other books have shared with this one ({ ...recipe, from: { id, title }, listed }). Read-only here.
+let shared = [];
+try { shared = key ? JSON.parse(store.get("sharedCache") || "[]") : []; } catch { shared = []; }
+async function loadShared() {
+  if (!key) return;
+  try {
+    ({ recipes: shared } = await api("/api/shared"));
+    store.set("sharedCache", JSON.stringify(shared));
+    if (ui.view === "list" || ui.view === "recipe") render();
+  } catch {}
+}
+const findRecipe = (id) => recipes.find(x => x.id === id) || shared.find(x => x.id === id);
 const uid = () => Math.random().toString(36).slice(2, 10);
 function waysCount(r) { return sectionsOf(r).reduce((n, s) => n * Math.max(1, s.options.length), 1); }
 function optionLabel(sec, opt, i) {
@@ -1114,7 +1203,7 @@ function thumbFor(r) {
 }
 function placeholder(r) {
   const ph = h("div", { class: "ph" });
-  ph.append(icon("sprig"), h("span", {}, (r.title || "?").trim().charAt(0).toUpperCase()));
+  ph.append(icon(motif()), h("span", {}, (r.title || "?").trim().charAt(0).toUpperCase()));
   return ph;
 }
 function metaRow(r, scaledServes, long, choice) {
@@ -1139,18 +1228,19 @@ function renderList() {
     ? `${recipes.length} recipe${recipes.length === 1 ? "" : "s"}, all in one place, so none of them go missing again.`
     : "Every recipe in one place, so none of them go missing again.";
 
-  const counts = { All: recipes.length, Favourites: recipes.filter(r => r.favourite).length };
+  const sharedList = shared.filter(r => r.listed);
+  const counts = { All: recipes.length, Favourites: recipes.filter(r => r.favourite).length, Shared: sharedList.length };
   for (const c of CATS) counts[c] = recipes.filter(r => r.category === c).length;
 
   const search = h("input", { id: "q", type: "search", placeholder: "Search recipes or ingredients", value: ui.q, "aria-label": "Search recipes" });
   search.addEventListener("input", () => { ui.q = search.value; drawGrid(); });
   const chips = h("div", { class: "chips", role: "group", "aria-label": "Filter by type" });
-  for (const c of ["All", "Favourites", ...CATS]) {
-    if (c !== "All" && !counts[c]) continue;
+  for (const c of ["All", "Favourites", "Shared", ...CATS]) {
+    if (c !== "All" && c !== "Shared" && !counts[c]) continue;
     chips.append(h("button", { class: "chip", type: "button", "aria-pressed": String(ui.cat === c), onclick: () => { ui.cat = c; render(); } },
       c, h("span", { class: "n" }, counts[c])));
   }
-  if (recipes.length) app.append(h("div", { class: "toolbar" }, h("div", { class: "search" }, icon("i-search"), search), chips));
+  if (recipes.length || sharedList.length) app.append(h("div", { class: "toolbar" }, h("div", { class: "search" }, icon("i-search"), search), chips));
 
   const grid = h("div", { class: "grid", id: "grid" });
   app.append(grid);
@@ -1159,16 +1249,17 @@ function renderList() {
 
   function drawGrid() {
     grid.replaceChildren();
+    if (ui.cat === "Shared") return drawShared();
     if (!loaded && !recipes.length) {
       grid.replaceWith(h("div", { class: "empty", id: "grid" },
-        h("svg", { class: "big", "aria-hidden": "true", html: '<use href="#sprig"/>' }),
+        h("svg", { class: "big", "aria-hidden": "true", html: `<use href="#${motif()}"/>` }),
         h("h2", {}, loadFailed ? "Can't reach the recipe book" : "Opening the recipe book…"),
         h("p", {}, loadFailed ? "Check the internet connection, then reload the page." : "One moment.")));
       return;
     }
     if (!recipes.length) {
       grid.replaceWith(h("div", { class: "empty", id: "grid" },
-        h("svg", { class: "big", "aria-hidden": "true", html: '<use href="#sprig"/>' }),
+        h("svg", { class: "big", "aria-hidden": "true", html: `<use href="#${motif()}"/>` }),
         h("h2", {}, "No recipes yet"),
         h("p", {}, "Paste a link from a recipe website, snap a recipe card, or write one out. It takes about a minute."),
         h("button", { class: "btn primary", type: "button", onclick: () => nav("#add") }, icon("i-plus"), "Add the first recipe")));
@@ -1180,18 +1271,31 @@ function renderList() {
       .filter(r => !q || searchText(r).includes(q))
       .sort((a, b) => (b.favourite ? 1 : 0) - (a.favourite ? 1 : 0) || (a.title || "").localeCompare(b.title || ""));
     if (!list.length) { grid.append(h("p", { style: "color:var(--muted)" }, "Nothing matches that. Try another word.")); return; }
-    for (const r of list) {
-      const t = thumbFor(r);
-      if (r.favourite) t.append(h("span", { class: "fav-badge", title: "Favourite" }, icon("i-star")));
-      grid.append(h("button", { class: "card", type: "button", onclick: () => nav("#r-" + r.id) },
-        t,
-        h("div", { class: "card-body" },
-          h("span", { class: "eyebrow" }, r.category || "Other"),
-          h("h3", {}, r.title || "Untitled"),
-          r.example ? h("span", { class: "example-tag" }, "Example") : null,
-          metaRow(r))));
-    }
+    for (const r of list) grid.append(recipeCard(r));
   }
+  // Recipes the other books have shared, newest names first like the rest.
+  function drawShared() {
+    const q = ui.q.trim().toLowerCase();
+    const list = sharedList.filter(r => !q || searchText(r).includes(q)).sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+    if (!sharedList.length) {
+      grid.append(h("p", { style: "color:var(--muted)" }, "Nothing has been shared with this book yet. When the other book shares a recipe, it shows up here."));
+      return;
+    }
+    if (!list.length) { grid.append(h("p", { style: "color:var(--muted)" }, "Nothing matches that. Try another word.")); return; }
+    for (const r of list) grid.append(recipeCard(r));
+  }
+}
+function recipeCard(r) {
+  const t = thumbFor(r);
+  if (r.favourite && !r.from) t.append(h("span", { class: "fav-badge", title: "Favourite" }, icon("i-star")));
+  return h("button", { class: "card", type: "button", onclick: () => nav("#r-" + r.id) },
+    t,
+    h("div", { class: "card-body" },
+      h("span", { class: "eyebrow" }, r.category || "Other"),
+      h("h3", {}, r.title || "Untitled"),
+      r.from ? h("span", { class: "share-tag" }, "From " + r.from.title) : r.shared ? h("span", { class: "share-tag" }, "Shared") : null,
+      r.example ? h("span", { class: "example-tag" }, "Example") : null,
+      metaRow(r)));
 }
 
 function renderRecipe() {
@@ -1214,6 +1318,10 @@ function renderRecipe() {
   const wakeBtn = h("button", { class: "btn", type: "button", "aria-pressed": String(!!wakeLock), onclick: toggleWake },
     icon("i-sun"), wakeLock ? "Screen stays on" : "Keep screen on");
   if (!("wakeLock" in navigator)) wakeBtn.hidden = true;
+  const shareBtn = h("button", { class: "btn" + (r.shared ? " fav-on" : ""), type: "button", "aria-pressed": String(!!r.shared), onclick: () => requireKey(async () => {
+    try { await saveRecipe({ ...r, shared: !r.shared }); } catch (e) { if (e.code === "wrong_key") return requireKey(() => {}); say("That change didn't save. Check the internet connection and try again."); }
+    render();
+  }) }, icon("i-share"), r.shared ? "Shared" : "Share recipe");
   const users = usedIn(r.id);
   const delBtn = h("button", { class: "btn danger", type: "button" }, "Delete");
   let armed = null;
@@ -1241,11 +1349,15 @@ function renderRecipe() {
       metaRow(r, ui.serves, true, ui.choice),
       r.source ? h("div", { class: "source" }, "From ", /^https?:\/\//.test(r.source) ? h("a", { href: r.source, target: "_blank", rel: "noopener" }, r.source.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]) : r.source) : null,
       users.length ? h("div", { class: "source" }, "Used in ", users.flatMap((u, i) => [i ? ", " : "", h("a", { href: "#r-" + u.id }, u.title)])) : null,
-      h("div", { class: "actions" },
+      r.from ? h("div", { class: "source" }, "Shared from " + r.from.title + ". Only they can change it.") : null,
+      r.shared && !r.from ? h("div", { class: "source" }, "Shared: the other book can see this in their Shared recipes.") : null,
+      // Another book's recipe can be read and cooked from here, but only its own book can change it.
+      h("div", { class: "actions" }, r.from ? [wakeBtn] : [
         favBtn,
+        shareBtn,
         wakeBtn,
         h("button", { class: "btn", type: "button", onclick: () => nav("#edit-" + r.id) }, icon("i-pen"), "Edit"),
-        delBtn))));
+        delBtn]))));
 
   // Pick a version of each part that has more than one
   const pickable = sectionsOf(r).filter(s => s.options.length > 1);
@@ -1470,7 +1582,7 @@ function renderUnlock() {
     try {
       const { book: b } = await api("/api/check");
       setBook(b);
-      loadRecipes(); loadSongs();
+      loadRecipes(); loadShared(); loadSongs();
       const after = ui.after; ui.after = "";
       if (after && after !== location.hash) location.hash = after; else route();
     } catch (err) {
@@ -1837,6 +1949,7 @@ function renderForm() {
         combo,
         notes: notes.value.trim(), source: source.value.trim(),
         favourite: editing?.favourite || false,
+        shared: editing?.shared || false,
         example: editing?.example || false,
         photo: ids.photo, cardPhoto: ids.cardPhoto,
       };
@@ -2306,8 +2419,9 @@ document.getElementById("replayCard").onclick = () => showCard(false);
 document.getElementById("switchBook").onclick = () => {
   if (music) stopMusic();
   setKey(null); setBook(null);
-  recipes = []; loaded = false; songs = DEFAULT_SONGS; spotifyClientId = "";
-  store.set("recipesCache", null);
+  recipes = []; shared = []; loaded = false; songs = DEFAULT_SONGS; spotifyClientId = "";
+  store.set("recipesCache", null); store.set("sharedCache", null);
+  ui.cat = "All";
   renderTunes();
   nav("");
 };
@@ -2317,13 +2431,14 @@ setBook(key ? book : null);
 try { recipes = key ? JSON.parse(store.get("recipesCache") || "[]") : []; } catch { recipes = []; }
 route();
 loadRecipes();
+loadShared();
 renderTunes();
 const songsLoaded = key ? loadSongs() : Promise.resolve();
 songsLoaded.then(finishSpotifyLogin);
 if (fromBirthdayLink && key) {
   api("/api/settings/card").then(({ card }) => card?.seen ? closeCard() : showCard(true)).catch(() => closeCard());
 }
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && (ui.view === "list" || ui.view === "recipe")) loadRecipes(); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && (ui.view === "list" || ui.view === "recipe")) { loadRecipes(); loadShared(); } });
 </script>
 </body>
 </html>
