@@ -392,6 +392,9 @@ a.btn { color: inherit; text-decoration: none; }
 .foot { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 24px; }
 .foot-link { background: none; border: 0; padding: 4px 2px; font: inherit; font-size: 14px; color: var(--leaf); cursor: pointer; border-bottom: 1px solid var(--leaf-soft); }
 .foot-link:hover { border-bottom-color: var(--leaf); }
+/* Shown to everyone, even before the kitchen code, so someone who can't get in knows who to ask. */
+.help-line { margin: 24px 0 0; text-align: center; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.help-line a { color: var(--leaf); }
 
 /* The birthday card: a folded card over the whole page. The cover swings open like a real card,
    sideways on wide screens and upwards (like a tent card) on phones, where two pages side by side won't fit. */
@@ -522,6 +525,7 @@ html.bday-on { overflow: hidden; }
     <button class="foot-link" id="replayCard" type="button" hidden>Replay your birthday card</button>
     <button class="foot-link" id="switchBook" type="button">Use a different kitchen code</button>
   </footer>
+  <p class="help-line">Any issues contact <a href="mailto:help@recipes.matthewhearst.com">help@recipes.matthewhearst.com</a></p>
 </div>
 </div>
 <div class="dock" id="dock" hidden><div id="player-slot"></div><div class="tunes" id="tunes"></div></div>
