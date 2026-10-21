@@ -314,9 +314,14 @@ a.btn { color: inherit; text-decoration: none; }
 .player.full img, .player.full .cover { width: 52px; height: 52px; border-radius: 8px; object-fit: cover; flex: none; background: var(--leaf-soft); display: grid; place-items: center; }
 .player.full .cover svg { width: 22px; height: 22px; color: var(--leaf); }
 .player .now { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.player .now strong, .player .now span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player .now strong, .player .now > span:not(.note) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .player .now strong { color: var(--ink); font-size: 15px; }
 .controls { display: flex; gap: 6px; }
+.player .where { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-size: 13px; color: var(--muted); }
+.link-btn { border: 0; background: none; padding: 0; color: var(--leaf); font: inherit; font-size: 13px; text-decoration: underline; text-underline-offset: 2px; }
+.speakers { display: flex; flex-wrap: wrap; gap: 8px; }
+.speakers .btn svg { width: 16px; height: 16px; }
+.player.choose { flex-wrap: wrap; padding-bottom: 2px; }
 .ctrl { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); color: var(--ink); display: grid; place-items: center; }
 .ctrl:not([disabled]):hover { border-color: var(--leaf); }
 .ctrl svg { width: 18px; height: 18px; }
@@ -377,6 +382,9 @@ a.btn { color: inherit; text-decoration: none; }
   <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></symbol>
   <symbol id="i-prev" viewBox="0 0 24 24"><path d="M6 5h2v14H6zM19 5.5v13L9.5 12z" fill="currentColor"/></symbol>
   <symbol id="i-next" viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM5 5.5v13L14.5 12z" fill="currentColor"/></symbol>
+  <symbol id="i-speaker" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="14" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="7.5" r="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2 19h20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 18.5h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-note" viewBox="0 0 24 24"><path d="M9 18V5.5l11-2V16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="17.5" cy="16" r="2.5" fill="currentColor"/></symbol>
   <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></symbol>
   <symbol id="i-ways" viewBox="0 0 24 24"><path d="M12 3l9 4.5-9 4.5-9-4.5z M3 12l9 4.5 9-4.5 M3 16.5l9 4.5 9-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
@@ -1765,35 +1773,121 @@ const SPOTIFY_SCOPES = "streaming user-read-email user-read-private user-modify-
 const redirectUri = () => location.origin + "/";
 // Spotify's in-page player doesn't run in phone browsers; phones use the app instead.
 const isPhone = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
-const canLogin = () => !!spotifyClientId && !spotifyAuth && !isPhone();
+// Phones can log in too: they can't play full songs themselves, but they can send them to a speaker.
+const canLogin = () => !!spotifyClientId && !spotifyAuth;
+const LOCAL = () => ({ local: true, name: isPhone() ? "This phone" : "This computer" });
+
+// Which speaker to use: asked each time unless she chose to remember one (per device).
+function savedSpeaker() { try { return JSON.parse(store.get("spotifySpeaker") || "null"); } catch { return null; } }
+function rememberSpeaker(t) { store.set("spotifySpeaker", t ? JSON.stringify({ local: !!t.local, id: t.id || null, name: t.name }) : null); }
+const sameSpeaker = (a, b) => !!a && !!b && (a.local ? !!b.local : !b.local && (a.id === b.id || a.name === b.name));
+
+// Spotify's Web API, for speakers like an Echo ("Spotify Connect").
+async function spApi(method, path, body) {
+  const token = await spotifyToken();
+  if (!token) throw { code: "auth" };
+  const res = await fetch("https://api.spotify.com/v1" + path, {
+    method, headers: { Authorization: "Bearer " + token, ...(body ? { "content-type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  if (res.status === 401) throw { code: "auth" };
+  if (res.status === 403) throw { code: "premium" };
+  if (res.status === 404) throw { code: "no_device" };
+  if (!res.ok) throw { code: "failed" };
+  return res.status === 204 ? null : res.json().catch(() => null);
+}
+async function listSpeakers() {
+  const { devices = [] } = (await spApi("GET", "/me/player/devices")) || {};
+  return devices.filter(d => !d.is_restricted && d.id && d.id !== SP.deviceId && d.name !== "Mum's Recipe Book");
+}
+const bodyFor = (e) => e.kind === "track" || e.kind === "episode" ? { uris: [`spotify:${e.kind}:${e.id}`] } : { context_uri: `spotify:${e.kind}:${e.id}` };
 
 function spotifyEmbed(url) {
   const m = String(url || "").match(/^https:\/\/open\.spotify\.com\/(?:intl-[a-z-]+\/)?(track|playlist|album|artist|episode|show)\/([A-Za-z0-9]+)/);
   return m ? { kind: m[1], id: m[2], src: `https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator` } : null;
 }
 
+const redrawMusic = () => { renderPlayer(); renderTunes(); };
+
+// Pressing ▶: with a Spotify login, play on the remembered speaker, or ask where; otherwise the preview player.
 async function play(song) {
   const e = spotifyEmbed(song.url);
   if (!e) return;
   SP.player?.activateElement?.(); // lets the browser start audio from this tap
-  music = { song, mode: "preview", note: "" };
-  if (spotifyAuth && spotifyClientId && !isPhone()) {
-    music.mode = "connecting"; renderPlayer(); renderTunes();
-    try { await playFull(e); music.mode = "full"; }
-    catch (err) { music.mode = "preview"; music.note = SPOTIFY_NOTES[err?.code] || SPOTIFY_NOTES.failed; if (err?.code === "auth") spotifyLogout(); }
+  if (!(spotifyAuth && spotifyClientId)) { music = { song, mode: "preview", note: "" }; return redrawMusic(); }
+  music = { song, mode: "connecting", target: null, note: "" }; redrawMusic();
+  let speakers = [];
+  try { speakers = await listSpeakers(); } catch (err) { if (err?.code === "auth") { spotifyLogout(); music = { song, mode: "preview", note: SPOTIFY_NOTES.auth }; return redrawMusic(); } }
+  const saved = savedSpeaker();
+  if (saved) {
+    if (saved.local) return playOn(song, LOCAL());
+    const d = speakers.find(x => x.id === saved.id) || speakers.find(x => x.name === saved.name);
+    return d ? playOn(song, d) : playOn(song, LOCAL(), { note: `${saved.name} isn't available right now, so this is playing here. Saying "Alexa, play Spotify" once usually wakes an Echo up.` });
   }
-  renderPlayer(); renderTunes();
+  // Nothing else to play on: no need to ask.
+  if (!speakers.length) return playOn(song, LOCAL());
+  music = { song, mode: "choose", speakers, note: "" }; redrawMusic();
+}
+// "Change": choose a speaker just for now, whatever is remembered.
+async function changeSpeaker() {
+  if (!music) return;
+  const song = music.song;
+  music = { song, mode: "connecting", target: null, note: "" }; redrawMusic();
+  let speakers = [];
+  try { speakers = await listSpeakers(); } catch {}
+  music = { song, mode: "choose", speakers, note: speakers.length ? "" : "No speakers found. If the Echo is asleep, say \"Alexa, play Spotify\" once, then try again." };
+  redrawMusic();
+}
+async function playOn(song, target, { note = "", ask = false } = {}) {
+  const e = spotifyEmbed(song.url);
+  clearInterval(SP.poll);
+  music = { song, mode: "connecting", target, note, ask };
+  redrawMusic();
+  try {
+    if (target.local) {
+      // Phones can't play full songs in the browser: preview here, or the Spotify app.
+      if (isPhone()) { music.mode = "preview"; return redrawMusic(); }
+      await playFull(e);
+      music.mode = "full";
+    } else {
+      await spApi("PUT", "/me/player/play?device_id=" + encodeURIComponent(target.id), bodyFor(e));
+      music.mode = "remote";
+      watchRemote();
+    }
+  } catch (err) {
+    music.mode = "preview";
+    music.note = err?.code === "no_device" ? `Couldn't reach ${target.name}. Saying "Alexa, play Spotify" once usually wakes an Echo up.` : SPOTIFY_NOTES[err?.code] || SPOTIFY_NOTES.failed;
+    if (err?.code === "auth") spotifyLogout();
+  }
+  redrawMusic();
+}
+// What a speaker is playing, checked every few seconds while it's in charge.
+function watchRemote() {
+  const tick = async () => {
+    if (music?.mode !== "remote") return clearInterval(SP.poll);
+    try { SP.remote = await spApi("GET", "/me/player"); renderPlayer(); } catch {}
+  };
+  tick();
+  SP.poll = setInterval(tick, 5000);
+}
+async function remoteControl(action) {
+  const id = encodeURIComponent(music?.target?.id || "");
+  try {
+    if (action === "toggle") await spApi("PUT", (SP.remote?.is_playing ? "/me/player/pause" : "/me/player/play") + "?device_id=" + id);
+    else await spApi("POST", `/me/player/${action}?device_id=` + id);
+  } catch {}
+  setTimeout(() => music?.mode === "remote" && spApi("GET", "/me/player").then(s => { SP.remote = s; renderPlayer(); }).catch(() => {}), 600);
 }
 const SPOTIFY_NOTES = {
-  premium: "Full songs on the page need Spotify Premium, so this is a preview.",
+  premium: "Full songs need Spotify Premium, so this is a preview.",
   auth: "Spotify needs you to log in again for full songs.",
   unsupported: "This browser can't play full songs on the page. Use Open in Spotify.",
   failed: "Couldn't start the full song, so this is a preview.",
 };
 function stopMusic() {
   if (music?.mode === "full") SP.player?.pause();
+  if (music?.mode === "remote") spApi("PUT", "/me/player/pause?device_id=" + encodeURIComponent(music.target.id)).catch(() => {});
+  clearInterval(SP.poll);
   music = null;
-  renderPlayer(); renderTunes();
+  redrawMusic();
 }
 
 function renderPlayer() {
@@ -1802,30 +1896,66 @@ function renderPlayer() {
   const e = spotifyEmbed(music.song.url);
   const open = h("a", { class: "btn small", href: music.song.url, target: "_blank", rel: "noopener" }, "Open in Spotify");
   const close = h("button", { class: "player-close", type: "button", "aria-label": "Close the music player", onclick: stopMusic }, "×");
-  if (music.mode === "full" || music.mode === "connecting") {
-    const t = SP.state?.track_window?.current_track;
-    const ctrl = (ic, label, fn) => h("button", { class: "ctrl", type: "button", "aria-label": label, onclick: fn, disabled: music.mode !== "full" }, icon(ic));
-    slot.replaceChildren(h("div", { class: "player full" },
-      t?.album?.images?.[0]?.url ? h("img", { src: t.album.images[0].url, alt: "" }) : h("span", { class: "cover" }, icon("i-note")),
-      h("div", { class: "now" },
-        h("strong", {}, music.mode === "connecting" ? "Connecting to Spotify…" : t?.name || music.song.title),
-        h("span", {}, t ? t.artists.map(a => a.name).join(", ") : music.song.title)),
-      h("div", { class: "controls" },
-        ctrl("i-prev", "Previous song", () => SP.player.previousTrack()),
-        ctrl(SP.state && !SP.state.paused ? "i-pause" : "i-play", SP.state && !SP.state.paused ? "Pause" : "Play", () => SP.player.togglePlay()),
-        ctrl("i-next", "Next song", () => SP.player.nextTrack())),
+  const link = (label, fn) => h("button", { class: "link-btn", type: "button", onclick: fn }, label);
+
+  // Where to play: this device or one of her speakers.
+  if (music.mode === "choose") {
+    const song = music.song;
+    const here = LOCAL();
+    slot.replaceChildren(h("div", { class: "player choose" },
+      h("div", { class: "now" }, h("strong", {}, song.title), h("span", {}, music.note || "Where would you like to play it?")),
+      h("div", { class: "speakers", role: "group", "aria-label": "Play on" },
+        h("button", { class: "btn small", type: "button", onclick: () => playOn(song, here, { ask: true }) }, icon(isPhone() ? "i-phone" : "i-laptop"), here.name + (isPhone() ? " (preview)" : "")),
+        music.speakers.map(d => h("button", { class: "btn small", type: "button", onclick: () => playOn(song, d, { ask: true }) }, icon("i-speaker"), d.name))),
       open, close));
-  } else {
-    const tall = e.kind !== "track" && e.kind !== "episode";
-    slot.replaceChildren(h("div", { class: "player" },
-      h("iframe", { src: e.src, title: "Spotify player: " + music.song.title, height: tall ? "152" : "80", allow: "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" }),
-      h("div", { class: "player-side" },
-        open,
-        canLogin() ? h("button", { class: "btn small primary", type: "button", onclick: () => spotifyLogin() }, "Log in to Spotify for full songs") : null,
-        music.note ? h("span", { class: "tune-kind" }, music.note)
-          : isPhone() ? h("span", { class: "tune-kind" }, "This is a preview. Open in Spotify plays the full songs.") : null),
-      close));
+    return fitDock();
   }
+
+  // The line under the song: where it's playing, and whether to remember that.
+  const saved = savedSpeaker();
+  const where = music.target ? h("div", { class: "where" },
+    music.ask && !sameSpeaker(saved, music.target)
+      ? [h("span", {}, `Always play on ${music.target.name}${saved ? " instead" : ""}?`),
+         link("Yes, remember", () => { rememberSpeaker(music.target); music.ask = false; renderPlayer(); }),
+         link("Just this time", () => { music.ask = false; renderPlayer(); })]
+      : [h("span", {}, `Playing on ${music.target.name}${sameSpeaker(saved, music.target) ? " (remembered)" : ""}`),
+         link("Change", changeSpeaker),
+         saved ? link("Stop remembering", () => { rememberSpeaker(null); renderPlayer(); }) : null]) : null;
+
+  if (music.mode === "full" || music.mode === "remote" || music.mode === "connecting") {
+    // The song, cover and controls come from this page's player, or from the speaker when one is in charge.
+    const remote = music.mode === "remote";
+    const t = remote ? SP.remote?.item && { name: SP.remote.item.name, artists: SP.remote.item.artists || [], image: SP.remote.item.album?.images?.[0]?.url }
+      : SP.state?.track_window?.current_track && (({ name, artists, album }) => ({ name, artists, image: album?.images?.[0]?.url }))(SP.state.track_window.current_track);
+    const playingNow = remote ? !!SP.remote?.is_playing : SP.state && !SP.state.paused;
+    const ready = music.mode !== "connecting";
+    const ctrl = (ic, label, fn) => h("button", { class: "ctrl", type: "button", "aria-label": label, onclick: fn, disabled: !ready }, icon(ic));
+    slot.replaceChildren(h("div", { class: "player full" },
+      t?.image ? h("img", { src: t.image, alt: "" }) : h("span", { class: "cover" }, icon("i-note")),
+      h("div", { class: "now" },
+        h("strong", {}, !ready ? (music.target ? `Starting on ${music.target.name}…` : "Connecting to Spotify…") : t?.name || music.song.title),
+        h("span", {}, t ? t.artists.map(a => a.name).join(", ") : music.song.title),
+        ready ? where : null,
+        music.note ? h("span", { class: "tune-kind note" }, music.note) : null),
+      h("div", { class: "controls" },
+        ctrl("i-prev", "Previous song", () => remote ? remoteControl("previous") : SP.player.previousTrack()),
+        ctrl(playingNow ? "i-pause" : "i-play", playingNow ? "Pause" : "Play", () => remote ? remoteControl("toggle") : SP.player.togglePlay()),
+        ctrl("i-next", "Next song", () => remote ? remoteControl("next") : SP.player.nextTrack())),
+      open, close));
+    return fitDock();
+  }
+
+  // Spotify's preview player (not logged in, a phone playing here, or full playback not possible).
+  const tall = e.kind !== "track" && e.kind !== "episode";
+  slot.replaceChildren(h("div", { class: "player" },
+    h("iframe", { src: e.src, title: "Spotify player: " + music.song.title, height: tall ? "152" : "80", allow: "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" }),
+    h("div", { class: "player-side" },
+      open,
+      canLogin() ? h("button", { class: "btn small primary", type: "button", onclick: () => spotifyLogin() }, isPhone() ? "Log in to Spotify to use your speakers" : "Log in to Spotify for full songs") : null,
+      music.note ? h("span", { class: "tune-kind" }, music.note)
+        : isPhone() ? h("span", { class: "tune-kind" }, "This is a preview. Open in Spotify plays the full songs.") : null,
+      spotifyAuth ? where || h("div", { class: "where" }, link("Play on a speaker", changeSpeaker)) : null),
+    close));
   fitDock();
 }
 
@@ -1950,7 +2080,7 @@ function renderSongEditor(el) {
   const cid = h("input", { id: "spotify-id", value: spotifyClientId, placeholder: "Client ID from the Spotify developer dashboard", autocomplete: "off" });
   const setup = h("details", { class: "spotify-setup" },
     h("summary", {}, "Spotify connection", h("span", { class: "tune-kind" }, spotifyClientId ? (spotifyAuth ? " · connected on this device" : " · set up") : " · not set up")),
-    h("p", { class: "tune-kind" }, "Lets Spotify songs play in full on the page, on a computer, for accounts with Spotify Premium. The redirect address to give Spotify is ", h("code", {}, redirectUri()), "."),
+    h("p", { class: "tune-kind" }, "With Spotify Premium: full songs on the page on a computer, and playing on speakers like an Echo from any device. The redirect address to give Spotify is ", h("code", {}, redirectUri()), "."),
     h("div", { class: "field" }, h("label", { for: "spotify-id" }, "Spotify Client ID"), cid),
     spotifyAuth ? h("div", { class: "ed-actions" }, h("span", { class: "tune-kind" }, "This device is logged in to Spotify."),
       h("button", { class: "btn small ghost", type: "button", onclick: () => { spotifyLogout(); stopMusic(); renderTunes(); } }, "Log out of Spotify")) : null);
