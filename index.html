@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Mum's Recipe Book</title>
+<title>Recipe Book</title>
 <meta name="theme-color" content="#3B6C45">
 <!-- Added to an iPhone or Android home screen, it opens like an app: its own icon and name, no browser bars. -->
 <link rel="manifest" href="/manifest.webmanifest">
@@ -355,7 +355,7 @@ a.btn { color: inherit; text-decoration: none; }
 .song-editor .msg.err { color: var(--danger); }
 
 /* Footer under the recipes */
-.foot { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); text-align: center; }
+.foot { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 24px; }
 .foot-link { background: none; border: 0; padding: 4px 2px; font: inherit; font-size: 14px; color: var(--leaf); cursor: pointer; border-bottom: 1px solid var(--leaf-soft); }
 .foot-link:hover { border-bottom-color: var(--leaf); }
 
@@ -474,7 +474,7 @@ html.bday-on { overflow: hidden; }
     <div class="brand">
       <svg aria-hidden="true"><use href="#sprig"/></svg>
       <div>
-        <h1>Mum's Recipe Book</h1>
+        <h1 id="bookTitle">Recipe Book</h1>
         <p id="tagline">Every recipe in one place, so none of them go missing again.</p>
       </div>
     </div>
@@ -482,7 +482,10 @@ html.bday-on { overflow: hidden; }
   </header>
   <div class="notice" id="notice" hidden></div>
   <main id="app"></main>
-  <footer class="foot" id="foot" hidden><button class="foot-link" id="replayCard" type="button">Replay your birthday card</button></footer>
+  <footer class="foot" id="foot" hidden>
+    <button class="foot-link" id="replayCard" type="button" hidden>Replay your birthday card</button>
+    <button class="foot-link" id="switchBook" type="button">Use a different kitchen code</button>
+  </footer>
 </div>
 </div>
 <div class="dock" id="dock" hidden><div id="player-slot"></div><div class="tunes" id="tunes"></div></div>
@@ -533,6 +536,18 @@ const store = {
 let key = store.get("kitchenKey");
 function setKey(k) { key = k; store.set("kitchenKey", k); }
 
+// Each kitchen code opens its own book ({ id, title, card }). Kept on the device so the title shows straight away.
+let book = null;
+try { book = JSON.parse(store.get("bookInfo") || "null"); } catch {}
+function setBook(b) {
+  book = b || null;
+  store.set("bookInfo", book ? JSON.stringify(book) : null);
+  const title = book?.title || "Recipe Book";
+  document.title = title;
+  document.getElementById("bookTitle").textContent = title;
+  document.getElementById("replayCard").hidden = !book?.card;
+}
+
 // The birthday link (/?birthday=<kitchen code>) logs her straight in and plays the card the first time.
 // The address is tidied straight away, so a bookmark or a later visit is just the book.
 const linkParams = new URLSearchParams(location.search);
@@ -548,7 +563,8 @@ if (fromBirthdayLink) {
 
 /* ---------- talking to the server ---------- */
 // On recipes.matthewhearst.com (GitHub Pages) the data lives on the Worker; on the Worker itself it's same-origin.
-const API = location.hostname.endsWith(".workers.dev") ? "" : "https://mums-recipe-book.discord-live-alerts.workers.dev";
+const API = location.hostname.endsWith(".workers.dev") || ["localhost", "127.0.0.1"].includes(location.hostname)
+  ? "" : "https://mums-recipe-book.discord-live-alerts.workers.dev";
 async function api(path, opts = {}) {
   const res = await fetch(API + path, { ...opts, headers: { ...(opts.headers || {}), "x-kitchen-key": key || "" } });
   if (res.status === 401) { setKey(null); throw { code: "wrong_key" }; }
@@ -559,8 +575,9 @@ async function api(path, opts = {}) {
 async function loadRecipes() {
   if (!key) return;
   try {
-    const { recipes: list } = await api("/api/recipes");
+    const { recipes: list, book: b } = await api("/api/recipes");
     recipes = list; loaded = true; loadFailed = false;
+    if (b) setBook(b);
     store.set("recipesCache", JSON.stringify(list));
   } catch (e) {
     if (e.code === "wrong_key") { recipes = []; store.set("recipesCache", null); return route(); }
@@ -1451,7 +1468,8 @@ function renderUnlock() {
     btn.disabled = true; msg.className = "msg"; msg.textContent = "Checking…";
     setKey(code);
     try {
-      await api("/api/check");
+      const { book: b } = await api("/api/check");
+      setBook(b);
       loadRecipes(); loadSongs();
       const after = ui.after; ui.after = "";
       if (after && after !== location.hash) location.hash = after; else route();
@@ -1850,7 +1868,7 @@ function renderForm() {
 const yt = (q) => "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
 const DEFAULT_SONGS = ["Bonfire Heart", "1973", "You're Beautiful", "Wisemen", "Stay the Night"]
   .map(t => ({ title: t, url: yt("James Blunt " + t), kind: "youtube" }));
-let songs = DEFAULT_SONGS, editingSongs = null, spotifyClientId = "";
+let songs = !book || book.id === "mum" ? DEFAULT_SONGS : [], editingSongs = null, spotifyClientId = "";
 const KIND_LABEL = { "spotify-playlist": "Spotify playlist", "spotify-album": "Spotify album", "spotify-artist": "Spotify artist", "spotify-track": "Spotify", "spotify-show": "Spotify podcast", "spotify-episode": "Spotify podcast" };
 const dock = document.getElementById("dock");
 
@@ -1894,6 +1912,8 @@ const redirectUri = () => location.origin + "/";
 const isPhone = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
 // Phones can log in too: they can't play full songs themselves, but they can send them to a speaker.
 const canLogin = () => !!spotifyClientId && !spotifyAuth;
+// The name this page shows up as in Spotify's list of devices.
+const playerName = () => book?.title || "Recipe Book";
 const LOCAL = () => ({ local: true, name: isPhone() ? "This phone" : "This computer" });
 
 // Which speaker to use: asked each time unless she chose to remember one (per device).
@@ -1915,7 +1935,7 @@ async function spApi(method, path, body) {
 }
 async function listSpeakers() {
   const { devices = [] } = (await spApi("GET", "/me/player/devices")) || {};
-  return devices.filter(d => !d.is_restricted && d.id && d.id !== SP.deviceId && d.name !== "Mum's Recipe Book");
+  return devices.filter(d => !d.is_restricted && d.id && d.id !== SP.deviceId && d.name !== playerName());
 }
 const bodyFor = (e) => e.kind === "track" || e.kind === "episode" ? { uris: [`spotify:${e.kind}:${e.id}`] } : { context_uri: `spotify:${e.kind}:${e.id}` };
 
@@ -2083,7 +2103,7 @@ function sdkPlayer() {
   if (sdkReady) return sdkReady;
   sdkReady = new Promise((resolve, reject) => {
     const start = () => {
-      const player = new Spotify.Player({ name: "Mum's Recipe Book", volume: 0.8, getOAuthToken: (cb) => { spotifyToken().then(t => t && cb(t)); } });
+      const player = new Spotify.Player({ name: playerName(), volume: 0.8, getOAuthToken: (cb) => { spotifyToken().then(t => t && cb(t)); } });
       const fail = (code) => () => reject({ code });
       player.addListener("ready", ({ device_id }) => { SP.deviceId = device_id; SP.player = player; resolve(player); });
       player.addListener("initialization_error", fail("unsupported"));
@@ -2282,7 +2302,18 @@ bdayCover.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preve
 document.getElementById("bdayGo").onclick = closeCard;
 document.getElementById("replayCard").onclick = () => showCard(false);
 
+// Forget this device's code and book, then ask for a code again.
+document.getElementById("switchBook").onclick = () => {
+  if (music) stopMusic();
+  setKey(null); setBook(null);
+  recipes = []; loaded = false; songs = DEFAULT_SONGS; spotifyClientId = "";
+  store.set("recipesCache", null);
+  renderTunes();
+  nav("");
+};
+
 /* ---------- start up ---------- */
+setBook(key ? book : null);
 try { recipes = key ? JSON.parse(store.get("recipesCache") || "[]") : []; } catch { recipes = []; }
 route();
 loadRecipes();
