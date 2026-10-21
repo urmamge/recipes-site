@@ -292,6 +292,16 @@ footer .tunes { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline;
 footer .tunes b { font-weight: 600; color: var(--ink); }
 footer a { color: var(--leaf); text-decoration: none; border-bottom: 1px solid var(--leaf-soft); }
 footer a:hover { border-bottom-color: var(--leaf); }
+footer .tunes .btn.small { padding: 3px 10px; font-size: 13px; }
+.tune-kind { color: var(--muted); font-size: 13px; }
+.bit-picks { display: flex; flex-direction: column; gap: 8px; }
+.song-editor { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 680px; }
+.song-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.song-list li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.song-list input, .song-add input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 12px; font-size: 15px; }
+.song-add { display: flex; gap: 8px; }
+.song-editor .msg { margin-right: auto; font-size: 14px; color: var(--muted); }
+.song-editor .msg.err { color: var(--danger); }
 
 @media (max-width: 760px) {
   .recipe-head, .recipe-body { grid-template-columns: minmax(0, 1fr); gap: 22px; }
@@ -344,14 +354,7 @@ footer a:hover { border-bottom-color: var(--leaf); }
   <div class="notice" id="notice" hidden></div>
   <main id="app"></main>
   <footer>
-    <div class="tunes">
-      <b>Something to cook to:</b>
-      <a href="https://www.youtube.com/results?search_query=James+Blunt+Bonfire+Heart" target="_blank" rel="noopener">Bonfire Heart</a>
-      <a href="https://www.youtube.com/results?search_query=James+Blunt+1973" target="_blank" rel="noopener">1973</a>
-      <a href="https://www.youtube.com/results?search_query=James+Blunt+You%27re+Beautiful" target="_blank" rel="noopener">You're Beautiful</a>
-      <a href="https://www.youtube.com/results?search_query=James+Blunt+Wisemen" target="_blank" rel="noopener">Wisemen</a>
-      <a href="https://www.youtube.com/results?search_query=James+Blunt+Stay+the+Night" target="_blank" rel="noopener">Stay the Night</a>
-    </div>
+    <div class="tunes" id="tunes"></div>
   </footer>
 </div>
 
@@ -729,22 +732,33 @@ function bitsOf(r) {
   const bits = parts.flatMap(s => s.options.map(o => ({ value: s.id + ":" + o.id, label: parts.length === 1 ? `${o.name || "Original"} version` : partTitle(s, o) })));
   return bits.length > 1 ? bits : [];
 }
-// "20 Minute Whole Chicken (Slow cooker)" for a version of a whole dish, "Chips, from Chicken and Chips" for one part.
-function bitTitle(r, bit) {
-  return sectionsOf(r).filter(s => s.kind !== "sub").length === 1 ? `${r.title} (${bit.opt.name || "Original"})` : `${partTitle(bit.sec, bit.opt)}, from ${r.title}`;
+// "20 Minute Whole Chicken (Slow cooker)" for versions of a whole dish, "Chips and Wedges, from Chicken and Chips" for parts.
+function bitTitle(r, bits) {
+  const and = (xs) => xs.length > 1 ? xs.slice(0, -1).join(", ") + " and " + xs.at(-1) : xs[0];
+  return sectionsOf(r).filter(s => s.kind !== "sub").length === 1
+    ? `${r.title} (${and(bits.map(b => b.opt.name || "Original"))})`
+    : bits.length > 1 && bits.every(b => b.sec === bits[0].sec)
+      ? `${and(bits.map(b => b.opt.name || "Original"))}, from ${r.title}`
+      : `${and(bits.map(b => partTitle(b.sec, b.opt)))}, from ${r.title}`;
 }
-function pickedBit(r, pick) {
-  if (!pick) return null;
-  const [sid, oid] = pick.split(":");
-  const sec = sectionsOf(r).find(s => s.id === sid);
-  const opt = sec?.options.find(o => o.id === oid);
-  return opt ? { sec, opt } : null;
+// The bits a meal takes from a recipe, stored as "section:option" pairs separated by commas.
+function pickedBits(r, pick) {
+  return String(pick || "").split(",").filter(Boolean).map(p => {
+    const [sid, oid] = p.split(":");
+    const sec = sectionsOf(r).find(s => s.id === sid);
+    const opt = sec?.options.find(o => o.id === oid);
+    return opt ? { sec, opt } : null;
+  }).filter(Boolean);
 }
-// A meal's calories per serving: each recipe's own per-serving figure, added up.
-// Calories per serving of one recipe in a meal, or of just the bit of it the meal takes.
+// Calories per serving of one recipe in a meal, or of the bits of it the meal takes, added together.
 function partCalories(sr, pick) {
-  const bit = pickedBit(sr, pick);
-  if (!bit) return calorieInfo(sr);
+  const bits = pickedBits(sr, pick);
+  if (!bits.length) return calorieInfo(sr);
+  const each = bits.map(bit => bitCalories(sr, bit));
+  if (each.every(c => !c)) return null;
+  return { value: each.reduce((n, c) => n + (c?.value || 0), 0), estimated: each.some(c => !c || c.estimated) };
+}
+function bitCalories(sr, bit) {
   const t = linesTotals(bit.opt.ingredients || []);
   const counted = t.n && t.kcal && !(t.unknown > t.n / 3);
   const onlyPart = sectionsOf(sr).filter(s => s.kind !== "sub").length === 1;
@@ -1174,7 +1188,7 @@ function subRecipeBox(sec, opt, factor, serveTo, onServes) {
     box.append(h("p", { style: "margin:0;color:var(--muted)" }, `The ${sec.name || "extra"} recipe that was here has been deleted. Edit this recipe to choose another.`));
     return box;
   }
-  const bit = pickedBit(sr, opt.pick);
+  const bits = pickedBits(sr, opt.pick);
   let f, note;
   if (serveTo) {
     f = sr.serves ? serveTo / sr.serves : 1;
@@ -1187,11 +1201,11 @@ function subRecipeBox(sec, opt, factor, serveTo, onServes) {
     f = share === 1 ? factor : 1;
     note = share === 1 ? "This dish uses all of it." : opt.uses ? `This dish uses ${opt.uses} of it. The amounts below make the whole batch.` : "";
   }
-  const own = bit ? [bit] : chosen(sr, choiceFor(sr)).filter(x => x.sec.kind !== "sub");
+  const own = bits.length ? bits : chosen(sr, choiceFor(sr)).filter(x => x.sec.kind !== "sub");
   box.append(h("div", { class: "sub-head" },
     h("div", {},
       h("span", { class: "eyebrow" }, [sec.name || (serveTo ? "" : "Also on this page"), sec.first ? "Make this first" : ""].filter(Boolean).join(" · ")),
-      h("h3", {}, bit ? bitTitle(sr, bit) : sr.title),
+      h("h3", {}, bits.length ? bitTitle(sr, bits) : sr.title),
       h("p", { class: "uses-note" }, note),
       onServes ? h("div", { class: "stepper", "aria-label": `Servings of ${sr.title}` },
         h("button", { type: "button", "aria-label": "Fewer servings", onclick: () => onServes(Math.max(.5, serveTo > 1 ? serveTo - 1 : serveTo / 2)) }, "−"),
@@ -1209,10 +1223,10 @@ function subRecipeBox(sec, opt, factor, serveTo, onServes) {
       method.append(stepList(o2.steps, `sub:${sr.id}:${s2.id}:${o2.id}`));
     }
   }
-  if (!bit && waysCount(sr) > 1) method.append(h("p", { class: "scaled-note" }, "This recipe has other versions. Open it on its own to see them."));
+  if (!bits.length && waysCount(sr) > 1) method.append(h("p", { class: "scaled-note" }, "This recipe has other versions. Open it on its own to see them."));
   if (sr.notes) method.append(h("div", { class: "notes-card" }, h("h4", {}, "Notes"), h("p", {}, sr.notes)));
   // A spice mix or stock with no method of its own just shows its ingredients.
-  const hasMethod = own.some(x => (x.opt.steps || []).length) || sr.notes || (!bit && waysCount(sr) > 1) || method.querySelector("img");
+  const hasMethod = own.some(x => (x.opt.steps || []).length) || sr.notes || (!bits.length && waysCount(sr) > 1) || method.querySelector("img");
   box.append(h("div", { class: "recipe-body" }, ing, hasMethod ? method : null));
   return box;
 }
@@ -1246,7 +1260,7 @@ function renderUnlock() {
     setKey(code);
     try {
       await api("/api/check");
-      loadRecipes();
+      loadRecipes(); loadSongs();
       const after = ui.after; ui.after = "";
       if (after && after !== location.hash) location.hash = after; else route();
     } catch (err) {
@@ -1487,11 +1501,19 @@ function renderForm() {
         const sr = findRecipe(o.recipeId);
         const bits = sr ? bitsOf(sr) : [];
         if (bits.length) {
-          const bitSel = h("select", { id: `b-${o.id}` },
-            h("option", { value: "", selected: !o.pick }, "The whole recipe"),
-            bits.map(b => h("option", { value: b.value, selected: o.pick === b.value }, "Just the " + b.label)));
-          bitSel.onchange = () => o.pick = bitSel.value;
-          optBox.append(f(`b-${o.id}`, "Which bit", bitSel));
+          // Tick any number of bits; none ticked means the whole recipe.
+          const ticked = new Set(String(o.pick || "").split(",").filter(Boolean));
+          const boxes = bits.map((b, bi) => {
+            const cb = h("input", { id: `b-${o.id}-${bi}`, type: "checkbox", checked: ticked.has(b.value) });
+            cb.onchange = () => {
+              cb.checked ? ticked.add(b.value) : ticked.delete(b.value);
+              o.pick = bits.map(x => x.value).filter(v => ticked.has(v)).join(",");
+            };
+            return h("label", { class: "check", for: cb.id }, cb, b.label);
+          });
+          optBox.append(h("div", { class: "field" },
+            h("span", { class: "lbl" }, "Which bits ", h("span", { class: "hint" }, "· tick as many as you like, or none for the whole recipe")),
+            h("div", { class: "bit-picks", role: "group", "aria-label": "Which bits" }, boxes)));
         }
         if (s.options.length > 1) optBox.append(h("div", { class: "ed-actions" }, small("Remove this choice", () => { s.options.splice(i, 1); drawSections(); }, "danger")));
         box.append(optBox);
@@ -1632,12 +1654,75 @@ function renderForm() {
   if (isNew && !d.title) title.focus();
 }
 
+/* ---------- "Something to cook to" ---------- */
+const yt = (q) => "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
+const DEFAULT_SONGS = ["Bonfire Heart", "1973", "You're Beautiful", "Wisemen", "Stay the Night"]
+  .map(t => ({ title: t, url: yt("James Blunt " + t), kind: "youtube" }));
+let songs = DEFAULT_SONGS, editingSongs = null;
+const KIND_LABEL = { "spotify-playlist": "Spotify playlist", "spotify-album": "Spotify album", "spotify-artist": "Spotify artist", "spotify-track": "Spotify", "spotify-show": "Spotify podcast", "spotify-episode": "Spotify podcast" };
+
+async function loadSongs() {
+  try { const { songs: saved } = await api("/api/settings/songs"); if (saved) songs = saved; } catch {}
+  renderTunes();
+}
+function renderTunes() {
+  const el = document.getElementById("tunes");
+  if (editingSongs) return renderSongEditor(el);
+  el.replaceChildren(h("b", {}, "Something to cook to:"),
+    ...songs.map(s => h("a", { href: s.url, target: "_blank", rel: "noopener" }, s.title,
+      KIND_LABEL[s.kind] ? h("span", { class: "tune-kind" }, " · " + KIND_LABEL[s.kind]) : null)),
+    key ? h("button", { class: "btn small ghost", type: "button", onclick: () => { editingSongs = songs.map(s => ({ ...s })); renderTunes(); } }, "Edit") : null);
+}
+function renderSongEditor(el) {
+  const list = h("ul", { class: "song-list" }, editingSongs.map((s, i) => {
+    const name = h("input", { id: `song-${i}`, value: s.title, "aria-label": "Name shown" });
+    name.oninput = () => s.title = name.value;
+    return h("li", {}, name,
+      h("span", { class: "tune-kind" }, KIND_LABEL[s.kind] || (s.kind === "youtube" ? "YouTube search" : new URL(s.url).hostname.replace(/^www\./, ""))),
+      h("button", { class: "btn small ghost danger", type: "button", "aria-label": "Remove " + s.title, onclick: () => { editingSongs.splice(i, 1); renderTunes(); } }, "Remove"));
+  }));
+  const add = h("input", { id: "song-add", placeholder: "Paste a Spotify song or playlist link, any web link, or type a song name" });
+  const msg = h("span", { class: "msg" });
+  const addIt = async () => {
+    const v = add.value.trim();
+    if (!v) return;
+    let item;
+    if (/^https?:\/\//i.test(v)) {
+      msg.className = "msg"; msg.textContent = "Looking it up…";
+      let info = {};
+      try { info = await api("/api/link-info?url=" + encodeURIComponent(v)); } catch {}
+      let host = ""; try { host = new URL(v).hostname.replace(/^www\./, ""); } catch {}
+      item = { title: info.title || host || v, url: info.url || v, kind: info.kind || "link" };
+    } else item = { title: v, url: yt(v), kind: "youtube" };
+    editingSongs.push(item);
+    renderTunes();
+    document.getElementById("song-add")?.focus();
+  };
+  add.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); addIt(); } };
+  const save = h("button", { class: "btn small primary", type: "button" }, "Save");
+  save.onclick = async () => {
+    save.disabled = true; msg.className = "msg"; msg.textContent = "Saving…";
+    try {
+      ({ songs } = await api("/api/settings/songs", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ songs: editingSongs }) }));
+      editingSongs = null; renderTunes();
+    } catch { save.disabled = false; msg.className = "msg err"; msg.textContent = "It didn't save. Check the internet connection and try again."; }
+  };
+  el.replaceChildren(h("div", { class: "song-editor" },
+    h("b", {}, "Something to cook to"),
+    editingSongs.length ? list : h("p", { class: "tune-kind" }, "Nothing on the list yet."),
+    h("div", { class: "song-add" }, add, h("button", { class: "btn small", type: "button", onclick: addIt }, "Add")),
+    h("p", { class: "tune-kind" }, "A song name opens a YouTube search for it. Spotify links show the song or playlist's name, which you can change."),
+    h("div", { class: "form-actions" }, msg, h("button", { class: "btn small ghost", type: "button", onclick: () => { editingSongs = null; renderTunes(); } }, "Cancel"), save)));
+}
+
 addBtn.onclick = () => nav("#add");
 
 /* ---------- start up ---------- */
 try { recipes = key ? JSON.parse(store.get("recipesCache") || "[]") : []; } catch { recipes = []; }
 route();
 loadRecipes();
+renderTunes();
+if (key) loadSongs();
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && (ui.view === "list" || ui.view === "recipe")) loadRecipes(); });
 </script>
 </body>
