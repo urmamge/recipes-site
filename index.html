@@ -287,29 +287,54 @@ a.btn { color: inherit; text-decoration: none; }
 .btn.small { padding: 6px 13px; font-size: 14px; }
 
 /* Footer */
-footer { margin-top: 64px; padding-top: 22px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: baseline; justify-content: space-between; color: var(--muted); font-size: 14px; }
-footer .tunes { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
-footer .tunes b { font-weight: 600; color: var(--ink); }
-footer a { color: var(--leaf); text-decoration: none; border-bottom: 1px solid var(--leaf-soft); }
-footer a:hover { border-bottom-color: var(--leaf); }
-footer .tunes .btn.small { padding: 3px 10px; font-size: 13px; }
+/* The music bar: always on screen at the bottom, with the player above the list when something's on */
+.dock {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; max-height: 80vh; overflow-y: auto;
+  padding: 0 max(12px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(12px, env(safe-area-inset-left, 0px));
+  background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -6px 20px rgba(29,45,33,.10);
+  font-size: 14px; color: var(--muted);
+}
+.dock .tunes { max-width: 1120px; margin: 0 auto; padding: 10px 0; display: flex; align-items: center; gap: 10px 16px; }
+.tunes-label { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); flex: none; }
+.tunes-label svg { width: 16px; height: 16px; color: var(--leaf); }
+.tunes-label b { font-weight: 600; }
+.tunes-list { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 16px; overflow-x: auto; white-space: nowrap; scrollbar-width: thin; padding-bottom: 2px; }
+.dock a { color: var(--leaf); text-decoration: none; border-bottom: 1px solid var(--leaf-soft); }
+.dock a:hover { border-bottom-color: var(--leaf); }
+.dock a.btn { color: inherit; border-bottom: 1px solid var(--line); }
+.dock .tunes .btn.small { padding: 3px 10px; font-size: 13px; flex: none; }
 .tune-kind { color: var(--muted); font-size: 13px; }
 .tune-play { border: 0; background: none; padding: 0; color: var(--leaf); font: inherit; display: inline-flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--leaf-soft); }
 .tune-play:hover { border-bottom-color: var(--leaf); }
 .tune-play svg { width: 14px; height: 14px; }
 .tune-play[aria-pressed="true"] { font-weight: 700; }
-.player {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
-  padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
-  background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -6px 20px rgba(29,45,33,.12);
-  display: flex; align-items: flex-start; gap: 8px; justify-content: center;
-}
-.player iframe { border: 0; border-radius: 12px; width: 100%; max-width: 680px; display: block; }
+.player { max-width: 1120px; margin: 0 auto; padding-top: 10px; display: flex; align-items: center; gap: 10px 14px; }
+.player iframe { border: 0; border-radius: 12px; flex: 1; min-width: 0; max-width: 680px; display: block; }
+.player-side { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; max-width: 280px; }
+.player.full img, .player.full .cover { width: 52px; height: 52px; border-radius: 8px; object-fit: cover; flex: none; background: var(--leaf-soft); display: grid; place-items: center; }
+.player.full .cover svg { width: 22px; height: 22px; color: var(--leaf); }
+.player .now { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.player .now strong, .player .now span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player .now strong { color: var(--ink); font-size: 15px; }
+.controls { display: flex; gap: 6px; }
+.ctrl { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); color: var(--ink); display: grid; place-items: center; }
+.ctrl:not([disabled]):hover { border-color: var(--leaf); }
+.ctrl svg { width: 18px; height: 18px; }
 .player-close { border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 34px; height: 34px; border-radius: 50%; font-size: 20px; line-height: 1; flex: none; }
-body.has-player { padding-bottom: 100px; }
-body.has-player.player-tall { padding-bottom: 172px; }
+.spotify-setup { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.spotify-setup summary { cursor: pointer; color: var(--ink); font-weight: 600; }
+.spotify-setup[open] { display: flex; flex-direction: column; gap: 10px; }
+.spotify-setup input { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 12px; font-size: 15px; }
+.spotify-setup code { font-size: 13px; color: var(--ink); overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .tunes-label b { display: none; }
+  .player { flex-wrap: wrap; }
+  .player iframe { flex-basis: 100%; }
+  .player-side { flex-direction: row; flex-wrap: wrap; align-items: center; max-width: none; flex: 1; }
+  .player.full .controls { order: 3; }
+}
 .bit-picks { display: flex; flex-direction: column; gap: 8px; }
-.song-editor { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 680px; }
+.song-editor { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 680px; margin: 0 auto; padding: 12px 0; color: var(--ink); }
 .song-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .song-list li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .song-list input, .song-add input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 12px; font-size: 15px; }
@@ -349,6 +374,10 @@ body.has-player.player-tall { padding-bottom: 172px; }
   <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-2.5h6L17 8h3a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
   <symbol id="i-paste" viewBox="0 0 24 24"><rect x="5" y="4.5" width="14" height="16.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 4.5V3h6v1.5M8.5 10h7M8.5 13.5h7M8.5 17h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l1-4.5L16 4.5a2.1 2.1 0 013 3L8 18.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 6.5l3 3" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="M6 5h2v14H6zM19 5.5v13L9.5 12z" fill="currentColor"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM5 5.5v13L14.5 12z" fill="currentColor"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M9 18V5.5l11-2V16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="17.5" cy="16" r="2.5" fill="currentColor"/></symbol>
   <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></symbol>
   <symbol id="i-ways" viewBox="0 0 24 24"><path d="M12 3l9 4.5-9 4.5-9-4.5z M3 12l9 4.5 9-4.5 M3 16.5l9 4.5 9-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
   <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3c.8 3.4 5.5 5.6 5.5 10.5a5.5 5.5 0 01-11 0c0-2.4 1.1-4 2.4-5.2.2 1.7 1 2.8 2.1 3.2-.1-3 .2-5.8 1-8.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
@@ -368,10 +397,9 @@ body.has-player.player-tall { padding-bottom: 172px; }
   </header>
   <div class="notice" id="notice" hidden></div>
   <main id="app"></main>
-  <footer>
-    <div class="tunes" id="tunes"></div>
-  </footer>
 </div>
+</div>
+<div class="dock" id="dock" hidden><div id="player-slot"></div><div class="tunes" id="tunes"></div></div>
 
 <script>
 const CATS = ["Breakfast", "Lunch", "Dinner", "Soups", "Sides", "Baking", "Desserts", "Drinks", "Sauces & extras", "Other"];
@@ -1692,59 +1720,201 @@ function renderForm() {
   if (isNew && !d.title) title.focus();
 }
 
-/* ---------- "Something to cook to" ---------- */
+/* ---------- "Something to cook to": the music bar fixed to the bottom of the screen ---------- */
 const yt = (q) => "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
 const DEFAULT_SONGS = ["Bonfire Heart", "1973", "You're Beautiful", "Wisemen", "Stay the Night"]
   .map(t => ({ title: t, url: yt("James Blunt " + t), kind: "youtube" }));
-let songs = DEFAULT_SONGS, editingSongs = null;
+let songs = DEFAULT_SONGS, editingSongs = null, spotifyClientId = "";
 const KIND_LABEL = { "spotify-playlist": "Spotify playlist", "spotify-album": "Spotify album", "spotify-artist": "Spotify artist", "spotify-track": "Spotify", "spotify-show": "Spotify podcast", "spotify-episode": "Spotify podcast" };
+const dock = document.getElementById("dock");
 
 async function loadSongs() {
   try { const { songs: saved } = await api("/api/settings/songs"); if (saved) songs = saved; } catch {}
+  try { const { spotify } = await api("/api/settings/spotify"); spotifyClientId = spotify?.clientId || ""; } catch {}
   renderTunes();
 }
+// Keep the page's last lines clear of the bar, whatever height it is.
+function fitDock() { document.body.style.paddingBottom = dock.hidden ? "" : dock.offsetHeight + 16 + "px"; }
+if ("ResizeObserver" in window) new ResizeObserver(fitDock).observe(dock);
+
 function renderTunes() {
   const el = document.getElementById("tunes");
+  dock.hidden = !key;
   if (editingSongs) return renderSongEditor(el);
-  // Spotify songs and playlists play in the player at the bottom; everything else opens in a new tab.
-  el.replaceChildren(h("b", {}, "Something to cook to:"),
-    ...songs.map(s => spotifyEmbed(s.url)
-      ? h("button", { class: "tune-play", type: "button", "aria-pressed": String(playing === s.url), onclick: () => play(s) },
+  // Spotify songs and playlists play in the bar; everything else opens in a new tab.
+  el.replaceChildren(
+    h("span", { class: "tunes-label" }, icon("i-note"), h("b", {}, "Something to cook to")),
+    h("div", { class: "tunes-list" }, songs.map(s => spotifyEmbed(s.url)
+      ? h("button", { class: "tune-play", type: "button", "aria-pressed": String(music?.song.url === s.url), onclick: () => play(s) },
           icon("i-play"), s.title, KIND_LABEL[s.kind] ? h("span", { class: "tune-kind" }, " · " + KIND_LABEL[s.kind]) : null)
       : h("a", { href: s.url, target: "_blank", rel: "noopener" }, s.title,
-          KIND_LABEL[s.kind] ? h("span", { class: "tune-kind" }, " · " + KIND_LABEL[s.kind]) : null)),
+          KIND_LABEL[s.kind] ? h("span", { class: "tune-kind" }, " · " + KIND_LABEL[s.kind]) : null))),
     key ? h("button", { class: "btn small ghost", type: "button", onclick: () => { editingSongs = songs.map(s => ({ ...s })); renderTunes(); } }, "Edit") : null);
+  fitDock();
 }
-/* --- the Spotify player docked at the bottom of the page --- */
-// The site never reloads between pages, so the music keeps going while she moves between recipes.
-let playing = null;
+
+/* --- Spotify ---
+   Logged in (Premium, on a computer): full songs through Spotify's Web Playback SDK, with our own controls.
+   Otherwise: Spotify's preview player. Every player has "Open in Spotify" for the app. */
+let music = null;          // { song, mode: "full" | "connecting" | "preview", note }
+const SP = { player: null, deviceId: null, state: null };
+let sdkReady = null;
+let spotifyAuth = null;
+try { spotifyAuth = JSON.parse(store.get("spotifyAuth") || "null"); } catch {}
+const SPOTIFY_SCOPES = "streaming user-read-email user-read-private user-modify-playback-state user-read-playback-state";
+const redirectUri = () => location.origin + "/";
+// Spotify's in-page player doesn't run in phone browsers; phones use the app instead.
+const isPhone = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
+const canLogin = () => !!spotifyClientId && !spotifyAuth && !isPhone();
+
 function spotifyEmbed(url) {
   const m = String(url || "").match(/^https:\/\/open\.spotify\.com\/(?:intl-[a-z-]+\/)?(track|playlist|album|artist|episode|show)\/([A-Za-z0-9]+)/);
-  return m ? { kind: m[1], src: `https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator` } : null;
+  return m ? { kind: m[1], id: m[2], src: `https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator` } : null;
 }
-function play(song) {
+
+async function play(song) {
   const e = spotifyEmbed(song.url);
   if (!e) return;
-  let bar = document.getElementById("player");
-  if (!bar) {
-    bar = h("div", { id: "player", class: "player", role: "region", "aria-label": "Music player" });
-    document.body.append(bar);
+  SP.player?.activateElement?.(); // lets the browser start audio from this tap
+  music = { song, mode: "preview", note: "" };
+  if (spotifyAuth && spotifyClientId && !isPhone()) {
+    music.mode = "connecting"; renderPlayer(); renderTunes();
+    try { await playFull(e); music.mode = "full"; }
+    catch (err) { music.mode = "preview"; music.note = SPOTIFY_NOTES[err?.code] || SPOTIFY_NOTES.failed; if (err?.code === "auth") spotifyLogout(); }
   }
-  playing = song.url;
-  // A single song fits the slim player; playlists and albums get room for their track list.
-  const tall = e.kind !== "track" && e.kind !== "episode";
-  bar.replaceChildren(
-    h("iframe", { src: e.src, title: "Spotify player: " + song.title, height: tall ? "152" : "80",
-      allow: "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" }),
-    h("button", { class: "player-close", type: "button", "aria-label": "Close the music player", onclick: stop }, "×"));
-  document.body.classList.toggle("player-tall", tall);
-  document.body.classList.add("has-player");
-  renderTunes();
+  renderPlayer(); renderTunes();
 }
-function stop() {
-  document.getElementById("player")?.remove();
-  document.body.classList.remove("has-player", "player-tall");
-  playing = null;
+const SPOTIFY_NOTES = {
+  premium: "Full songs on the page need Spotify Premium, so this is a preview.",
+  auth: "Spotify needs you to log in again for full songs.",
+  unsupported: "This browser can't play full songs on the page. Use Open in Spotify.",
+  failed: "Couldn't start the full song, so this is a preview.",
+};
+function stopMusic() {
+  if (music?.mode === "full") SP.player?.pause();
+  music = null;
+  renderPlayer(); renderTunes();
+}
+
+function renderPlayer() {
+  const slot = document.getElementById("player-slot");
+  if (!music) { slot.replaceChildren(); return fitDock(); }
+  const e = spotifyEmbed(music.song.url);
+  const open = h("a", { class: "btn small", href: music.song.url, target: "_blank", rel: "noopener" }, "Open in Spotify");
+  const close = h("button", { class: "player-close", type: "button", "aria-label": "Close the music player", onclick: stopMusic }, "×");
+  if (music.mode === "full" || music.mode === "connecting") {
+    const t = SP.state?.track_window?.current_track;
+    const ctrl = (ic, label, fn) => h("button", { class: "ctrl", type: "button", "aria-label": label, onclick: fn, disabled: music.mode !== "full" }, icon(ic));
+    slot.replaceChildren(h("div", { class: "player full" },
+      t?.album?.images?.[0]?.url ? h("img", { src: t.album.images[0].url, alt: "" }) : h("span", { class: "cover" }, icon("i-note")),
+      h("div", { class: "now" },
+        h("strong", {}, music.mode === "connecting" ? "Connecting to Spotify…" : t?.name || music.song.title),
+        h("span", {}, t ? t.artists.map(a => a.name).join(", ") : music.song.title)),
+      h("div", { class: "controls" },
+        ctrl("i-prev", "Previous song", () => SP.player.previousTrack()),
+        ctrl(SP.state && !SP.state.paused ? "i-pause" : "i-play", SP.state && !SP.state.paused ? "Pause" : "Play", () => SP.player.togglePlay()),
+        ctrl("i-next", "Next song", () => SP.player.nextTrack())),
+      open, close));
+  } else {
+    const tall = e.kind !== "track" && e.kind !== "episode";
+    slot.replaceChildren(h("div", { class: "player" },
+      h("iframe", { src: e.src, title: "Spotify player: " + music.song.title, height: tall ? "152" : "80", allow: "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" }),
+      h("div", { class: "player-side" },
+        open,
+        canLogin() ? h("button", { class: "btn small primary", type: "button", onclick: () => spotifyLogin() }, "Log in to Spotify for full songs") : null,
+        music.note ? h("span", { class: "tune-kind" }, music.note)
+          : isPhone() ? h("span", { class: "tune-kind" }, "This is a preview. Open in Spotify plays the full songs.") : null),
+      close));
+  }
+  fitDock();
+}
+
+// Spotify's player in this page: loaded the first time it's needed, then kept for the visit.
+function sdkPlayer() {
+  if (sdkReady) return sdkReady;
+  sdkReady = new Promise((resolve, reject) => {
+    const start = () => {
+      const player = new Spotify.Player({ name: "Mum's Recipe Book", volume: 0.8, getOAuthToken: (cb) => { spotifyToken().then(t => t && cb(t)); } });
+      const fail = (code) => () => reject({ code });
+      player.addListener("ready", ({ device_id }) => { SP.deviceId = device_id; SP.player = player; resolve(player); });
+      player.addListener("initialization_error", fail("unsupported"));
+      player.addListener("authentication_error", fail("auth"));
+      player.addListener("account_error", fail("premium"));
+      player.addListener("player_state_changed", (s) => { SP.state = s; if (music?.mode === "full") renderPlayer(); });
+      player.connect();
+      setTimeout(fail("failed"), 15000);
+    };
+    if (window.Spotify) return start();
+    window.onSpotifyWebPlaybackSDKReady = start;
+    document.head.append(h("script", { src: "https://sdk.scdn.co/spotify-player.js" }));
+  });
+  sdkReady.catch(() => { sdkReady = null; });
+  return sdkReady;
+}
+async function playFull(e) {
+  await sdkPlayer();
+  const token = await spotifyToken();
+  if (!token) throw { code: "auth" };
+  const body = e.kind === "track" || e.kind === "episode" ? { uris: [`spotify:${e.kind}:${e.id}`] } : { context_uri: `spotify:${e.kind}:${e.id}` };
+  // A brand-new player can take a moment before Spotify will send music to it.
+  for (let i = 0; i < 4; i++) {
+    const res = await fetch("https://api.spotify.com/v1/me/player/play?device_id=" + SP.deviceId, {
+      method: "PUT", headers: { Authorization: "Bearer " + token, "content-type": "application/json" }, body: JSON.stringify(body) });
+    if (res.ok) return;
+    if (res.status === 401) throw { code: "auth" };
+    if (res.status === 403) throw { code: "premium" };
+    await new Promise(r => setTimeout(r, 800));
+  }
+  throw { code: "failed" };
+}
+
+// Logging in: Spotify's "PKCE" sign-in, which needs no secret, so it runs entirely in the page.
+const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+async function spotifyLogin() {
+  const verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
+  const state = b64url(crypto.getRandomValues(new Uint8Array(12)));
+  const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
+  store.set("spotifyPkce", JSON.stringify({ verifier, state, hash: location.hash }));
+  location.href = "https://accounts.spotify.com/authorize?" + new URLSearchParams({
+    client_id: spotifyClientId, response_type: "code", redirect_uri: redirectUri(),
+    code_challenge_method: "S256", code_challenge: challenge, state, scope: SPOTIFY_SCOPES });
+}
+async function spotifyTokenRequest(params) {
+  const res = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ client_id: spotifyClientId, ...params }) });
+  if (!res.ok) throw new Error("token");
+  const d = await res.json();
+  spotifyAuth = { access: d.access_token, refresh: d.refresh_token || spotifyAuth?.refresh, expires: Date.now() + d.expires_in * 1000 };
+  store.set("spotifyAuth", JSON.stringify(spotifyAuth));
+}
+async function spotifyToken() {
+  if (!spotifyAuth) return null;
+  if (Date.now() < spotifyAuth.expires - 60000) return spotifyAuth.access;
+  try { await spotifyTokenRequest({ grant_type: "refresh_token", refresh_token: spotifyAuth.refresh }); return spotifyAuth.access; }
+  catch { spotifyLogout(); return null; }
+}
+function spotifyLogout() {
+  spotifyAuth = null; store.set("spotifyAuth", null);
+  SP.player?.disconnect(); SP.player = null; SP.state = null; sdkReady = null;
+}
+// Coming back from Spotify's login page: tidy the address now, swap the one-time code for a login once settings load.
+const spotifyReturn = (() => {
+  const q = new URLSearchParams(location.search);
+  if (!q.has("code") && !q.has("error")) return null;
+  let saved = null;
+  try { saved = JSON.parse(store.get("spotifyPkce") || "null"); } catch {}
+  store.set("spotifyPkce", null);
+  history.replaceState("", "", location.pathname + (saved?.hash || ""));
+  return { code: q.get("code"), ok: !q.get("error") && saved && q.get("state") === saved.state, verifier: saved?.verifier };
+})();
+async function finishSpotifyLogin() {
+  if (!spotifyReturn) return;
+  if (!spotifyReturn.ok || !spotifyClientId) return say("Spotify login didn't finish. Try again from the music bar.");
+  try {
+    await spotifyTokenRequest({ grant_type: "authorization_code", code: spotifyReturn.code, redirect_uri: redirectUri(), code_verifier: spotifyReturn.verifier });
+    say("Connected to Spotify. Press ▶ on a Spotify song or playlist in the music bar to play it in full.");
+  } catch { say("Couldn't finish logging in to Spotify. Try again from the music bar."); }
   renderTunes();
 }
 
@@ -1752,8 +1922,9 @@ function renderSongEditor(el) {
   const list = h("ul", { class: "song-list" }, editingSongs.map((s, i) => {
     const name = h("input", { id: `song-${i}`, value: s.title, "aria-label": "Name shown" });
     name.oninput = () => s.title = name.value;
-    return h("li", {}, name,
-      h("span", { class: "tune-kind" }, KIND_LABEL[s.kind] || (s.kind === "youtube" ? "YouTube search" : new URL(s.url).hostname.replace(/^www\./, ""))),
+    let where = KIND_LABEL[s.kind] || (s.kind === "youtube" ? "YouTube search" : "");
+    if (!where) { try { where = new URL(s.url).hostname.replace(/^www\./, ""); } catch {} }
+    return h("li", {}, name, h("span", { class: "tune-kind" }, where),
       h("button", { class: "btn small ghost danger", type: "button", "aria-label": "Remove " + s.title, onclick: () => { editingSongs.splice(i, 1); renderTunes(); } }, "Remove"));
   }));
   const add = h("input", { id: "song-add", placeholder: "Paste a Spotify song or playlist link, any web link, or type a song name" });
@@ -1774,20 +1945,41 @@ function renderSongEditor(el) {
     document.getElementById("song-add")?.focus();
   };
   add.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); addIt(); } };
+
+  // Spotify connection: the app's Client ID is shared by everyone; being logged in is per device.
+  const cid = h("input", { id: "spotify-id", value: spotifyClientId, placeholder: "Client ID from the Spotify developer dashboard", autocomplete: "off" });
+  const setup = h("details", { class: "spotify-setup" },
+    h("summary", {}, "Spotify connection", h("span", { class: "tune-kind" }, spotifyClientId ? (spotifyAuth ? " · connected on this device" : " · set up") : " · not set up")),
+    h("p", { class: "tune-kind" }, "Lets Spotify songs play in full on the page, on a computer, for accounts with Spotify Premium. The redirect address to give Spotify is ", h("code", {}, redirectUri()), "."),
+    h("div", { class: "field" }, h("label", { for: "spotify-id" }, "Spotify Client ID"), cid),
+    spotifyAuth ? h("div", { class: "ed-actions" }, h("span", { class: "tune-kind" }, "This device is logged in to Spotify."),
+      h("button", { class: "btn small ghost", type: "button", onclick: () => { spotifyLogout(); stopMusic(); renderTunes(); } }, "Log out of Spotify")) : null);
+
   const save = h("button", { class: "btn small primary", type: "button" }, "Save");
   save.onclick = async () => {
     save.disabled = true; msg.className = "msg"; msg.textContent = "Saving…";
     try {
       ({ songs } = await api("/api/settings/songs", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ songs: editingSongs }) }));
+      const id = cid.value.trim();
+      if (id !== spotifyClientId) {
+        const { spotify } = await api("/api/settings/spotify", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ clientId: id }) });
+        spotifyClientId = spotify?.clientId || "";
+        if (id && !spotifyClientId) throw { code: "bad_id" };
+      }
       editingSongs = null; renderTunes();
-    } catch { save.disabled = false; msg.className = "msg err"; msg.textContent = "It didn't save. Check the internet connection and try again."; }
+    } catch (e) {
+      save.disabled = false; msg.className = "msg err";
+      msg.textContent = e?.code === "bad_id" ? "That doesn't look like a Spotify Client ID. It's 32 letters and numbers." : "It didn't save. Check the internet connection and try again.";
+    }
   };
   el.replaceChildren(h("div", { class: "song-editor" },
     h("b", {}, "Something to cook to"),
     editingSongs.length ? list : h("p", { class: "tune-kind" }, "Nothing on the list yet."),
     h("div", { class: "song-add" }, add, h("button", { class: "btn small", type: "button", onclick: addIt }, "Add")),
     h("p", { class: "tune-kind" }, "A song name opens a YouTube search for it. Spotify links show the song or playlist's name, which you can change."),
+    setup,
     h("div", { class: "form-actions" }, msg, h("button", { class: "btn small ghost", type: "button", onclick: () => { editingSongs = null; renderTunes(); } }, "Cancel"), save)));
+  fitDock();
 }
 
 addBtn.onclick = () => nav("#add");
@@ -1797,7 +1989,8 @@ try { recipes = key ? JSON.parse(store.get("recipesCache") || "[]") : []; } catc
 route();
 loadRecipes();
 renderTunes();
-if (key) loadSongs();
+const songsLoaded = key ? loadSongs() : Promise.resolve();
+songsLoaded.then(finishSpotifyLogin);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && (ui.view === "list" || ui.view === "recipe")) loadRecipes(); });
 </script>
 </body>
